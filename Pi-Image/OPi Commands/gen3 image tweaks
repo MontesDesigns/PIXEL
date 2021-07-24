@@ -1,0 +1,7 @@
+add arcadeall,mame Mapping
+
+cp daphne-dlair.jpg "daphne-Dragons Lair.jpg"
+cp daphne-cliff.jpg "daphne-Cliff Hanger.jpg"
+cp daphne-ace.jpg "daphne-Space Ace.jpg"
+cp daphne-cobraab.jpg "daphne-Cobra Command.jpg"
+cp daphne-mach3.jpg "daphne-MACH 3.jpg"

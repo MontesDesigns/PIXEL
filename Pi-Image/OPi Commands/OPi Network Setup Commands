@@ -1,0 +1,35 @@
+
+nmcli c
+nmcli c delete PixelcadeSetup
+
+sudo pico /etc/modules-load.d/modules.conf
+remove rtl8xxxu
+6:46
+the file /etc/modules
+6:47
+same thing, remove that
+6:47
+then lsmod for me again
+6:47
+then nmcli d
+
+sudo modprobe -r  rtl8xxxu
+
+nmcli con add type wifi ifname <wx-something> mode ap con-name PixelcadeSetup ssid PixelcadeSetup
+nmcli con modify PixelcadeSetup 802-11-wireless.band bg
+nmcli con modify PixelcadeSetup ipv4.method shared
+
+
+nmcli con add type wifi ifname wlx00e04d0cf641 mode ap con-name PixelcadeSetup ssid PixelcadeSetup
+nmcli con modify PixelcadeSetup 802-11-wireless.band bg
+nmcli con modify PixelcadeSetup ipv4.method shared
+
+wlx00e04d0cf641
+wlx00e04d0cf641
+
+nmcli con modify PixelcadeSetup autoconnect no
+
+creating the image from dd
+
+sudo dd if=/dev/rdisk2 ibs=16777216 of=/Users/al/pi/PixelcadeOPiV8.img obs=8388608
+
