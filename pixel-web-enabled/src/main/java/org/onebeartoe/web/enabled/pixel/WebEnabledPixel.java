@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
+import java.net.Socket;
 import java.net.URL;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Paths;
@@ -81,38 +82,39 @@ import xyz.gianlu.zeroconf.*;
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceEvent;
 import javax.jmdns.ServiceListener;
+import org.onebeartoe.web.enabled.pixel.controllers.lcdfinder;
 
 
-public class WebEnabledPixel implements ServiceListener {
+public class WebEnabledPixel  {
     
-    @Override
-    public void serviceAdded(ServiceEvent event) {
-      //System.out.println("Service added: " + event.getInfo());
-      //System.out.println("Service Port: " + event.getInfo().getPort());
-      embeddedLoc = event.getInfo().getServer().replace("._pixelcade._tcp","");
-      embeddedLoc = embeddedLoc.substring(0, embeddedLoc.length() - 1);
-      embeddedLoc = embeddedLoc.replace("PixelcadeLCD-","");
-      //System.out.println("Service URL: " + embeddedLoc);
-       System.out.println("Pixelcade LCD mDNS Detected: " + embeddedLoc);
-       LogMe.aLogger.info("Pixelcade LCD mDNS Detected: " + embeddedLoc);
-    }
+//    @Override
+//    public void serviceAdded(ServiceEvent event) {
+//      //System.out.println("Service added: " + event.getInfo());
+//      //System.out.println("Service Port: " + event.getInfo().getPort());
+//      embeddedLoc = event.getInfo().getServer().replace("._pixelcade._tcp","");
+//      embeddedLoc = embeddedLoc.substring(0, embeddedLoc.length() - 1);
+//      embeddedLoc = embeddedLoc.replace("PixelcadeLCD-","");
+//      //System.out.println("Service URL: " + embeddedLoc);
+//       System.out.println("Pixelcade LCD mDNS Detected: " + embeddedLoc);
+//       LogMe.aLogger.info("Pixelcade LCD mDNS Detected: " + embeddedLoc);
+//    }
 
-    @Override
-    public void serviceRemoved(ServiceEvent event) {
-      System.out.println("Service removed: " + event.getInfo());
-    }
-
-    @Override
-    public void serviceResolved(ServiceEvent event) {
-      //System.out.println("Service resolved: " + event.getDNS().getHostName());
-      //event.getDNS().getHostName();
-    }
+//    @Override
+//    public void serviceRemoved(ServiceEvent event) {
+//      System.out.println("Service removed: " + event.getInfo());
+//    }
+//
+//    @Override
+//    public void serviceResolved(ServiceEvent event) {
+//      //System.out.println("Service resolved: " + event.getDNS().getHostName());
+//      //event.getDNS().getHostName();
+//    }
     
   public String embeddedLoc = "pixelcadedx.local"; 
     
   public static boolean dxEnvironment = true;
   
-  public static String pixelwebVersion = "3.6.1";
+  public static String pixelwebVersion = "3.6.3";
   
   public static LogMe logMe = null;
   
@@ -190,6 +192,8 @@ public class WebEnabledPixel implements ServiceListener {
   
   private static String lcdMarqueeHostName_ = "pixelcadedx.local";
   
+  private static String lcdMarqueeIPAddress = "";
+  
   private static String lcdMarqueeMessage_ = "Welcome to Pixelcade and Game On!";
   
   private static String defaultFont = "Arial Narrow 7";
@@ -262,7 +266,7 @@ public class WebEnabledPixel implements ServiceListener {
   
   public static SpiMaster spi2_;
   
-  private static String LEDStrip1_ = "no";
+  private static String  LEDStrip1_ = "no";
   
   private static Integer LEDStrip1NumberLEDs_ = 13;
   
@@ -270,7 +274,7 @@ public class WebEnabledPixel implements ServiceListener {
   
   private static Integer LEDStrip1CLKPin_ = 2;
   
-  private static String LEDStrip2_ = "no";
+  private static String  LEDStrip2_ = "no";
   
   private static Integer LEDStrip2NumberLEDs_ = 13;
   
@@ -289,6 +293,10 @@ public class WebEnabledPixel implements ServiceListener {
   private static String currentPlatform = "NotSelectedYet";
   
   private static String LCDLEDCompliment_ = "yes";
+  
+  public static Boolean LCDSearchRan = false;
+  
+  private static String LCDReturn = "";
   
   public WebEnabledPixel(String[] args) throws FileNotFoundException, IOException {
       
@@ -482,6 +490,13 @@ public class WebEnabledPixel implements ServiceListener {
         ini.store();
       } 
       
+       if (sec.containsKey("LCDMarqueeIPAddress")) {
+        lcdMarqueeIPAddress = (String)sec.get("LCDMarqueeIPAddress");
+      } else {
+        sec.add("LCDMarqueeIPAddress", "");
+        ini.store();
+      }
+      
       if (sec.containsKey("LCDMarquee")) {
         lcdMarquee_ = (String)sec.get("LCDMarquee");
       } else {
@@ -555,17 +570,18 @@ public class WebEnabledPixel implements ServiceListener {
 //             } 
 //       } catch (  Exception e){}
       
+//duplicate?
+//if (lcdMarquee_.equals("yes") && lcdDisplay != null) {
+//	if(lcdDisplay == null) lcdDisplay = new LCDPixelcade();
+//        try {
+//          Font temp = Font.createFont(Font.TRUETYPE_FONT, new FileInputStream(pixelHome + "fonts/" + defaultFont + ".ttf"));
+//          lcdDisplay.setLCDFont(temp.deriveFont(244f),defaultFont + ".ttf");
+//          //lcdDisplay.windowsLCD.marqueeFrame.setFont(temp.deriveFont(244f));
+//        }catch (FontFormatException|IOException| NullPointerException e){
+//          System.out.println("Could not set lcd font from: " + pixelHome + "fonts/" + defaultFont + ".ttf" +"   (...\n");
+//        }
+//    }   
 
-if (lcdMarquee_.equals("yes") && lcdDisplay != null) {
-	if(lcdDisplay == null) lcdDisplay = new LCDPixelcade();
-        try {
-          Font temp = Font.createFont(Font.TRUETYPE_FONT, new FileInputStream(pixelHome + "fonts/" + defaultFont + ".ttf"));
-          lcdDisplay.setLCDFont(temp.deriveFont(244f),defaultFont + ".ttf");
-          //lcdDisplay.windowsLCD.marqueeFrame.setFont(temp.deriveFont(244f));
-        }catch (FontFormatException|IOException| NullPointerException e){
-          System.out.println("Could not set lcd font from: " + pixelHome + "fonts/" + defaultFont + ".ttf" +"   (...\n");
-        }
-    }      
       if (this.ledResolution_.equals("128x32")) {
         if (!silentMode_) {
           System.out.println("PIXEL resolution found in settings.ini: resolution=" + this.ledResolution_);
@@ -664,31 +680,6 @@ if (lcdMarquee_.equals("yes") && lcdDisplay != null) {
       LogMe.aLogger.info("Pixelcade HOME DIRECTORY: " + pixelHome); 
       System.out.println("Pixelcade HOME DIRECTORY: " + pixelHome);
     }  
-    //extractDefaultContent();  //saving space by removing this as the retropie installer now includes all these files so no need to include here and make the .jar bigger
-    
- 
-     // Create a JmDNS instance, we'll use this to auto-detect Pixelcade LCD on the network using Bonjour mDNS
-//      Thread thread = new Thread(() -> {
-//        JmDNS jmdns = null;
-//        try {
-//          jmdns = JmDNS.create(InetAddress.getLocalHost());
-//        } catch (IOException e) {
-//          e.printStackTrace();
-//        }
-//
-//        // Add a service listener
-//        jmdns.addServiceListener("_pixelcade._tcp.local.", this);
-//
-//        // Wait a bit
-//        try {
-//          Thread.sleep(10000);
-//        } catch (InterruptedException e) {
-//        }
-//
-//        Thread.currentThread().interrupt();
-//      });
-//      thread.start();
-    
     
     createControllers();
     
@@ -774,15 +765,53 @@ if (lcdMarquee_.equals("yes") && lcdDisplay != null) {
     }
 
     if (lcdMarquee_.equals("yes")) {
-      LCDPixelcade lcdDisplay = new LCDPixelcade();
-	try {
-          Font temp = Font.createFont(Font.TRUETYPE_FONT, new FileInputStream(pixelHome + "fonts/" + defaultFont + ".ttf"));
-          lcdDisplay.setLCDFont(temp.deriveFont(244f),defaultFont + ".ttf");
-          //lcdDisplay.windowsLCD.marqueeFrame.setFont(temp.deriveFont(244f));
-        }catch (FontFormatException|IOException| NullPointerException e){
-          System.out.println("Could not set lcd font from: " + pixelHome + "fonts/" + defaultFont + ".ttf" +" :(...\n");
+        
+       System.out.println("Searching for Pixelcade LCD...");  //TO DO may want to stick this in a timer because it's a problem if Pixelcade LCD loads after this ran
+       if (pingHost(getLCDMarqueeHostName(), 8080, 5000)) {    
+            System.out.print("[PIXELCADE LCD FOUND] : " + getLCDMarqueeHostName() + "\n");
+            System.out.print("[PIXELCADE LCD FOUND] : " + getLCDMarqueeHostName() + "\n");
+            LogMe.aLogger.info("[PIXELCADE LCD FOUND] : " + getLCDMarqueeHostName());
+//            LCDPixelcade lcdDisplay = new LCDPixelcade();
+//            try {
+//              Font temp = Font.createFont(Font.TRUETYPE_FONT, new FileInputStream(pixelHome + "fonts/" + defaultFont + ".ttf"));
+//              lcdDisplay.setLCDFont(temp.deriveFont(244f),defaultFont + ".ttf");
+//            }catch (FontFormatException|IOException| NullPointerException e){
+//              System.out.println("Could not set lcd font from: " + pixelHome + "fonts/" + defaultFont + ".ttf" +" :(...\n");
+//            }
+       }
+       else {  //ok didn't find so let's try using the IP address
+            //it's a valid IP so let's see if its reachable
+            if (validIP(lcdMarqueeIPAddress) && pingHost(lcdMarqueeIPAddress, 8080, 5000)) {  //if it's a valid IP and we can ping it, let's continue
+                setLCDMarqueeHostName(lcdMarqueeIPAddress);
+            }
+            else {  //no go so let's launch the lcdfinder and see what we discover via mdns
+                 System.out.println("[WARNING] Pixelcade LCD is enabled but was not detected");
+                 System.out.println("[WARNING] This will slow down performance of Pixelcade LED so please");
+                 System.out.println("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD");
+                 LogMe.aLogger.info("[WARNING] Pixelcade LCD is enabled but was not detected");
+                 LogMe.aLogger.info("[WARNING] This will slow down performance of Pixelcade LED so please");
+                 LogMe.aLogger.info("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD");
+                 //BUT let's do a scan at this point and see if we can find it
+                 if (LCDSearchRan == false) {  //this can only run once
+                     LogMe.aLogger.info("Could not find LCD, let's use the LCD finder and see if we can find it via mdns");
+                     lcdfinder LCDfinder_ = new lcdfinder();
+                     LCDReturn = LCDfinder_.getLCD(getLCDMarqueeHostName());
+                     LCDSearchRan = true;
+                 }
+             }
+       } 
+       
+       LCDPixelcade lcdDisplay = new LCDPixelcade();
+            try {
+              Font temp = Font.createFont(Font.TRUETYPE_FONT, new FileInputStream(pixelHome + "fonts/" + defaultFont + ".ttf"));
+              lcdDisplay.setLCDFont(temp.deriveFont(244f),defaultFont + ".ttf");
+            }catch (FontFormatException|IOException| NullPointerException e){
+              System.out.println("Could not set lcd font from: " + pixelHome + "fonts/" + defaultFont + ".ttf" +" :(...\n");
         }
+       
+       
     }
+             
     
     if (this.SubDisplayAccessory_.equals("yes")) {
       System.out.println("Attempting to connect to Pixelcade Sub Display Accessory...");
@@ -980,6 +1009,42 @@ if (lcdMarquee_.equals("yes") && lcdDisplay != null) {
         }
     }
   
+  public static boolean pingHost(String host, int port, int timeout) {
+    try (Socket socket = new Socket()) {
+        socket.connect(new InetSocketAddress(host, port), timeout);
+        return true;
+    } catch (IOException e) {
+        return false; // Either timeout or unreachable or failed DNS lookup.
+    }
+}
+  
+public static boolean validIP (String ip) {
+    try {
+        if ( ip == null || ip.isEmpty() ) {
+            return false;
+        }
+
+        String[] parts = ip.split( "\\." );
+        if ( parts.length != 4 ) {
+            return false;
+        }
+
+        for ( String s : parts ) {
+            int i = Integer.parseInt( s );
+            if ( (i < 0) || (i > 255) ) {
+                return false;
+            }
+        }
+        if ( ip.endsWith(".") ) {
+            return false;
+        }
+
+        return true;
+    } catch (NumberFormatException nfe) {
+        return false;
+    }
+}
+  
   public static String getGameName(String romName) {
     String GameName = "";
     romName = romName.trim();
@@ -1078,6 +1143,10 @@ if (lcdMarquee_.equals("yes") && lcdDisplay != null) {
   
   public static String getLCDMarqueeHostName() {
     return lcdMarqueeHostName_;
+  }
+  
+  public static void setLCDMarqueeHostName(String newLCDHostName) {
+    lcdMarqueeHostName_ = newLCDHostName;
   }
   
   public static int getDefaultFontSize() {

@@ -40,6 +40,7 @@ public class LCDPixelcade {
     private boolean dxChecked = false;
     public static boolean isWindows = System.getProperty("os.name").toLowerCase().startsWith("windows");
     public static boolean  doGif = false;
+    public static String LCDReturn;
 
     {
         if (!dxChecked){
@@ -48,13 +49,21 @@ public class LCDPixelcade {
 
                     dxChecked = true;
                     //System.out.print("Pixelcade LCD: Setting DXEnvironment\n");
-                    System.out.print("Pixelcade LCD Detected\n");
+                    //System.out.print("Pixelcade LCD Detected\n");
+                    
                 } else {
                     //System.out.print("LCD used in non-DXE...)\n");
-                    System.out.print("[WARNING] Pixelcade LCD is enabled but was not detected\n");
-                    System.out.print("[WARNING] This will slow down performance of Pixelcade LED so please\n");
-                    System.out.print("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD\n");
-                    WebEnabledPixel.dxEnvironment = false;
+//                    System.out.print("[WARNING] Pixelcade LCD is enabled but was not detected\n");
+//                    System.out.print("[WARNING] This will slow down performance of Pixelcade LED so please\n");
+//                    System.out.print("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD\n");
+                    //BUT let's do a scan at this point and see if we can find it
+//                    if (WebEnabledPixel.LCDSearchRan == false) {  //this can only run once
+//                        lcdfinder LCDfinder_ = new lcdfinder();
+//                        LCDReturn = LCDfinder_.getLCD(getLCDMarqueeHostName());
+//                        WebEnabledPixel.LCDSearchRan = true;
+//                    }
+                    
+                    //WebEnabledPixel.dxEnvironment = false;  //non DX not supported so let's get rid of this
                     dxChecked = true;
                 }
 
