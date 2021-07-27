@@ -1,5 +1,6 @@
 package org.onebeartoe.lcdfinder.cade.pixel;
 
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -33,6 +34,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
+import org.apache.commons.lang3.StringUtils;
 
 public class lcdfinder implements ServiceListener {
     
@@ -68,7 +71,7 @@ public class lcdfinder implements ServiceListener {
     
     public String embeddedLoc = "pixelcadedx.local"; 
   
-    public static String pixelcadeLCDFinderVersion = "3.5.5";
+    public static String pixelcadeLCDFinderVersion = "3.6.2";
 
     private CliPixel cli;
     
@@ -85,13 +88,17 @@ public class lcdfinder implements ServiceListener {
     private boolean PixelcadeV1Detected = false;
     
     public static String OS = System.getProperty("os.name").toLowerCase();
+    
+    private Integer hyphenCount = 0;
+    
+    private InetAddress host = null;
    
     public lcdfinder(String[] args)
     {
         //cli = new CliPixel(args);
         //cli.parse();
-        
-        System.out.println("Searching your network for Pixelcades for 10 seconds...");
+        System.out.println("Pixelcade LCD Pairing Version: " + pixelcadeLCDFinderVersion);
+        System.out.println("Searching your network for Pixelcade LCDs for 10 seconds...");
         
       //***************************************************
       // Create a JmDNS instance, we'll use this to auto-detect Pixelcade LCD on the network using Bonjour mDNS
@@ -124,12 +131,17 @@ public class lcdfinder implements ServiceListener {
 
                     //V2CheckResult_ = OPiCheck(Pixelcades.get(i),"name",":8080/v2/info"); //this call doesn't always work for some reason so need to do hack
                     V2CheckResult_ = OPiCheckHack(Pixelcades.get(i)); //this call doesn't always work for some reason so need to do hack
-                    System.out.println("Pixelcade V2 Check: " + "[" + V2CheckResult_ + "]");  
+                    //System.out.println("Pixelcade V2 Check: " + "[" + V2CheckResult_ + "]");  
      
                     if (!V2CheckResult_.equals("nodata")) { //then we got something back from the v2/info call so we know it's an OPi
 
                         pairingAPIResult_ = PairingAPICall(Pixelcades.get(i),"message",":8080/v2/utility/pairing/");
                         System.out.println(Pixelcades.get(i) + " Pairing Status: " + "[" + pairingAPIResult_ +"]"); 
+                        
+                        hyphenCount = StringUtils.countMatches(Pixelcades.get(0), "-");
+                        if (hyphenCount > 1) {
+                             System.out.println("[WARNING] " + "Potentially weak WiFi detected. If your Pixelcade LCD does connect in the future, please run this Pixelcade Pair utility again");
+                        }
 
                          if (pairingAPIResult_.equals("unpaired")) { //let's first see if we have more than 1 unpaired
                              UnpairedPixelcades.add(Pixelcades.get(i));
@@ -152,10 +164,21 @@ public class lcdfinder implements ServiceListener {
                      System.out.println("One unpaired Pixelcade LCD: [" + UnpairedPixelcades.get(0) + "] detected, now pairing...");  
                      pairingAPIResult_ = PairingAPICall(UnpairedPixelcades.get(0),"message",":8080/v2/utility/pairing/set/on");
                      System.out.println("[PAIRED] " + UnpairedPixelcades.get(0) + " paired with result: " + pairingAPIResult_); 
+                     
+                     hyphenCount = StringUtils.countMatches(Pixelcades.get(0), "-");
+                     if (hyphenCount > 1) {
+                          System.out.println("[WARNING] " + "Potentially weak WiFi detected. If your Pixelcade LCD does connect in the future, please run this Pixelcade Pair utility again");
+                     }
+                     
                      //sendURL(UnpairedPixelcades.get(0),":8080/text?t=PAIRED&color=green");
                      sendURL(UnpairedPixelcades.get(0),":8080/arcade/stream/mame/paired.jpg");
-                     writeSettingsINI(UnpairedPixelcades.get(0));
-                     //System.exit(0);
+                     try {
+                            host = InetAddress.getByName(UnpairedPixelcades.get(0));
+                            System.out.println(host.getHostAddress());
+                        } catch (UnknownHostException ex) {
+                            ex.printStackTrace();
+                      }
+                     writeSettingsINI(UnpairedPixelcades.get(0),host.getHostAddress());
                      PauseAndExit();
                 } 
 
@@ -170,7 +193,7 @@ public class lcdfinder implements ServiceListener {
                         System.out.println("[QUESTION] Do you want to pair with: " + UnpairedPixelcades.get(i) + "?");
 
                         //sendURL(UnpairedPixelcades.get(i),":8080/text?t=Type%20y%20to%20pair%20to%20this%20Pixelcade%20LCD%20or%20Type%20n%20to%20select%20another%20one");
-                        sendURL(UnpairedPixelcades.get(i),":8080/arcade/stream/mame/paired-prompt.jpg");
+                        sendURL(UnpairedPixelcades.get(i),":8080/arcade/stream/mame/pair-prompt.jpg");
 
                         while(scanner.hasNextLine())
                         {
@@ -187,9 +210,24 @@ public class lcdfinder implements ServiceListener {
                                System.out.println("Now pairing with: " + UnpairedPixelcades.get(i));
                                //sendURL(UnpairedPixelcades.get(i),":8080/text?t=PAIRED&color=green");
                                sendURL(UnpairedPixelcades.get(i),":8080/arcade/stream/mame/paired.jpg");
+                               
+                                hyphenCount = StringUtils.countMatches(Pixelcades.get(0), "-");
+                                if (hyphenCount > 1) {
+                                     System.out.println("[WARNING] " + "Potentially weak WiFi detected. If your Pixelcade LCD does connect in the future, please run this Pixelcade Pair utility again");
+                                }
+                               
+                               
                                pairingAPIResult_ = PairingAPICall(UnpairedPixelcades.get(i),"message",":8080/v2/utility/pairing/set/on");
                                System.out.println("[PAIRED] " + UnpairedPixelcades.get(i) + " paired with result: " + pairingAPIResult_); 
-                               writeSettingsINI(UnpairedPixelcades.get(i));
+                               
+                               try {
+                                    host = InetAddress.getByName(UnpairedPixelcades.get(0));
+                                    System.out.println(host.getHostAddress());
+                                    } catch (UnknownHostException ex) {
+                                        ex.printStackTrace();
+                                }
+                               
+                               writeSettingsINI(UnpairedPixelcades.get(i),host.getHostAddress());
                                //System.exit(0);
                                PauseAndExit();
                            }
@@ -222,9 +260,12 @@ public class lcdfinder implements ServiceListener {
 
                         System.out.println("[QUESTION] Do you want to unpair and pair with: " + PairedPixelcades.get(i) + "?");
                         //sendURL(PairedPixelcades.get(i),":8080/text?t=Type%20y%20to%20unpair%20to%20this%20Pixelcade%20LCD%20or%20Type%20n%20to%20skip");
-                        sendURL(PairedPixelcades.get(i),":8080/arcade/stream/mame/paired-prompt.jpg");
-                        //To Do , change this to the graphic "pair-prompt.jpg"
-                      
+                        sendURL(PairedPixelcades.get(i),":8080/arcade/stream/mame/pair-prompt.jpg");
+                        
+                        hyphenCount = StringUtils.countMatches(Pixelcades.get(0), "-");
+                        if (hyphenCount > 1) {
+                             System.out.println("[WARNING] " + "Potentially weak WiFi detected. If your Pixelcade LCD does connect in the future, please run this Pixelcade Pair utility again");
+                        }
 
                         while(scanner.hasNextLine())
                         {
@@ -245,11 +286,24 @@ public class lcdfinder implements ServiceListener {
                                //and then pair
                                pairingAPIResult_ = PairingAPICall(PairedPixelcades.get(i),"message",":8080/v2/utility/pairing/set/on");
                                System.out.println("[PAIRED] " + PairedPixelcades.get(i) + " paired with result: " + pairingAPIResult_); 
+                               
+                               try {
+                                    host = InetAddress.getByName(UnpairedPixelcades.get(0));
+                                    System.out.println(host.getHostAddress());
+                                    } catch (UnknownHostException ex) {
+                                        ex.printStackTrace();
+                                }
 
                                //now we've paired so let's write to settings.ini
-                               writeSettingsINI(PairedPixelcades.get(i));
+                               writeSettingsINI(PairedPixelcades.get(i),host.getHostAddress());
                                //sendURL(PairedPixelcades.get(i),":8080/text?t=PAIRED&color=green");
                                sendURL(PairedPixelcades.get(i),":8080/arcade/stream/mame/paired.jpg");
+                               
+                                hyphenCount = StringUtils.countMatches(Pixelcades.get(0), "-");
+                                if (hyphenCount > 1) {
+                                     System.out.println("[WARNING] " + "Potentially weak WiFi detected. If your Pixelcade LCD does connect in the future, please run this Pixelcade Pair utility again");
+                                }
+                               
                                //TO DO change this to the graphic "paired.jpg"
                                //System.exit(0);
                                PauseAndExit();
@@ -257,7 +311,9 @@ public class lcdfinder implements ServiceListener {
                            else if (token.equalsIgnoreCase("n")||token.equalsIgnoreCase("no"))
                            {
                                //ok we're not pairing to this one so let's put a generic marquee on and break the while and move on to the next one
-                               sendURL(PairedPixelcades.get(i),":8080/arcade/stream/mame/pixelcade.jpg");
+                               //sendURL(PairedPixelcades.get(i),":8080/arcade/stream/mame/pixelcade.jpg");
+                               sendURL(PairedPixelcades.get(i),":8080/arcade/stream/mame/atari5200-testgreen.jpg");
+                               
                                break;
                            }
                            else
@@ -277,7 +333,13 @@ public class lcdfinder implements ServiceListener {
                 }
                 else if (PixelcadeV1Detected) { //then there was only a Pixelcade V1 on the network which will always be pixelcadedx.local
                     System.out.println("Pixelcade LCD V1 detected...");
-                    writeSettingsINI("pixelcadedx.local");
+                    try {
+                        host = InetAddress.getByName("pixelcadedx.local");
+                        System.out.println(host.getHostAddress());
+                        } catch (UnknownHostException ex) {
+                            ex.printStackTrace();
+                    }
+                    writeSettingsINI("pixelcadedx.local",host.getHostAddress());
                     PauseAndExit();
                     //System.exit(0);
                 }
@@ -463,7 +525,7 @@ public class lcdfinder implements ServiceListener {
         }
     }
     
-    private void writeSettingsINI(String selectedPixelcadeHost) {
+    private void writeSettingsINI(String selectedPixelcadeHost, String selectedPixelcadeIP) {
         
         File file = new File("settings.ini"); //let's open settings.ini which is in the same Pixelcade directory as this code is lauching from or to do, define pixelcade home
         
@@ -500,7 +562,27 @@ public class lcdfinder implements ServiceListener {
             } catch (IOException ex) {
                 Logger.getLogger(lcdfinder.class.getName()).log(Level.SEVERE, null, ex);
             }
-         }  
+         } 
+         
+           if (sec.containsKey("LCDMarqueeIPAddress")) { try {
+             //if this key is already there
+             sec.put("LCDMarqueeIPAddress", selectedPixelcadeIP);
+             ini.store();
+             System.out.println("Pixelcade LCD IP Address [" + selectedPixelcadeIP + "] written to settings.ini");
+            } catch (IOException ex) {
+                Logger.getLogger(lcdfinder.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            } 
+          else {                                      try {
+              //the key wasn't there so let's add it
+              sec.add("LCDMarqueeIPAddress", selectedPixelcadeIP);
+              ini.store();
+              System.out.println("Pixelcade LCD IP Address [" + selectedPixelcadeIP + "] written to settings.ini");
+            } catch (IOException ex) {
+                Logger.getLogger(lcdfinder.class.getName()).log(Level.SEVERE, null, ex);
+            }
+         }
+         
         }
         else {
              System.out.println("[ERROR] Could not load settings.ini");
