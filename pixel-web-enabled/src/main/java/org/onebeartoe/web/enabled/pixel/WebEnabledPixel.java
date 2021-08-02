@@ -1,5 +1,5 @@
 package org.onebeartoe.web.enabled.pixel;
-
+//For LED
 import com.fazecast.jSerialComm.SerialPort;
 import com.fazecast.jSerialComm.SerialPortDataListener;
 import com.fazecast.jSerialComm.SerialPortEvent;
@@ -87,34 +87,11 @@ import org.onebeartoe.web.enabled.pixel.controllers.lcdfinder;
 
 public class WebEnabledPixel  {
     
-//    @Override
-//    public void serviceAdded(ServiceEvent event) {
-//      //System.out.println("Service added: " + event.getInfo());
-//      //System.out.println("Service Port: " + event.getInfo().getPort());
-//      embeddedLoc = event.getInfo().getServer().replace("._pixelcade._tcp","");
-//      embeddedLoc = embeddedLoc.substring(0, embeddedLoc.length() - 1);
-//      embeddedLoc = embeddedLoc.replace("PixelcadeLCD-","");
-//      //System.out.println("Service URL: " + embeddedLoc);
-//       System.out.println("Pixelcade LCD mDNS Detected: " + embeddedLoc);
-//       LogMe.aLogger.info("Pixelcade LCD mDNS Detected: " + embeddedLoc);
-//    }
-
-//    @Override
-//    public void serviceRemoved(ServiceEvent event) {
-//      System.out.println("Service removed: " + event.getInfo());
-//    }
-//
-//    @Override
-//    public void serviceResolved(ServiceEvent event) {
-//      //System.out.println("Service resolved: " + event.getDNS().getHostName());
-//      //event.getDNS().getHostName();
-//    }
-    
   public String embeddedLoc = "pixelcadedx.local"; 
     
   public static boolean dxEnvironment = true;
   
-  public static String pixelwebVersion = "3.6.3";
+  public static String pixelwebVersion = "3.6.5";
   
   public static LogMe logMe = null;
   
@@ -294,9 +271,13 @@ public class WebEnabledPixel  {
   
   private static String LCDLEDCompliment_ = "yes";
   
-  public static Boolean LCDSearchRan = false;
+  public static Integer LCDSearchRanCounter = 0;
   
-  private static String LCDReturn = "";
+  private static boolean LCDFound_ = false;
+  
+  private static Integer LCDSearchStartUpDelay_ = 0;
+  
+  private Pattern pattern = Pattern.compile("-?\\d+(\\.\\d+)?");
   
   public WebEnabledPixel(String[] args) throws FileNotFoundException, IOException {
       
@@ -480,6 +461,35 @@ public class WebEnabledPixel  {
         sec.add("fontSize_OPTION", "18");
         sec.add("fontSize_OPTION", "14");
         sec.add("yTextOffset", "0");
+        ini.store();
+      } 
+      
+      
+      
+      if (sec.containsKey("LCDSearchStartUpDelay")) {
+        
+        String temp =  (String)sec.get("LCDSearchStartUpDelay");
+          
+        if (isNumeric(temp)) {  //had to add this because if the user adds a non-numeric, it will crash here
+            LCDSearchStartUpDelay_ = Integer.parseInt((String)sec.get("LCDSearchStartUpDelay"));
+        }
+        else {
+            LCDSearchStartUpDelay_ = 0;
+        }
+      } else {
+        sec.add("LCDSearchStartUpDelay", "0");
+        sec.add("LCDSearchStartUpDelay_OPTION", "0");
+        sec.add("LCDSearchStartUpDelay_OPTION", "3");
+        sec.add("LCDSearchStartUpDelay_OPTION", "6");
+        sec.add("LCDSearchStartUpDelay_OPTION", "9");
+        sec.add("LCDSearchStartUpDelay_OPTION", "12");
+        sec.add("LCDSearchStartUpDelay_OPTION", "15");
+        sec.add("LCDSearchStartUpDelay_OPTION", "18");
+        sec.add("LCDSearchStartUpDelay_OPTION", "21");
+        sec.add("LCDSearchStartUpDelay_OPTION", "24");
+        sec.add("LCDSearchStartUpDelay_OPTION", "27");
+        sec.add("LCDSearchStartUpDelay_OPTION", "30");
+        sec.add("LCDSearchStartUpDelay_OPTION", "60");
         ini.store();
       } 
       
@@ -765,41 +775,24 @@ public class WebEnabledPixel  {
     }
 
     if (lcdMarquee_.equals("yes")) {
-        
-       System.out.println("Searching for Pixelcade LCD...");  //TO DO may want to stick this in a timer because it's a problem if Pixelcade LCD loads after this ran
-       if (pingHost(getLCDMarqueeHostName(), 8080, 5000)) {    
-            System.out.print("[PIXELCADE LCD FOUND] : " + getLCDMarqueeHostName() + "\n");
-            System.out.print("[PIXELCADE LCD FOUND] : " + getLCDMarqueeHostName() + "\n");
-            LogMe.aLogger.info("[PIXELCADE LCD FOUND] : " + getLCDMarqueeHostName());
-//            LCDPixelcade lcdDisplay = new LCDPixelcade();
-//            try {
-//              Font temp = Font.createFont(Font.TRUETYPE_FONT, new FileInputStream(pixelHome + "fonts/" + defaultFont + ".ttf"));
-//              lcdDisplay.setLCDFont(temp.deriveFont(244f),defaultFont + ".ttf");
-//            }catch (FontFormatException|IOException| NullPointerException e){
-//              System.out.println("Could not set lcd font from: " + pixelHome + "fonts/" + defaultFont + ".ttf" +" :(...\n");
-//            }
-       }
-       else {  //ok didn't find so let's try using the IP address
-            //it's a valid IP so let's see if its reachable
-            if (validIP(lcdMarqueeIPAddress) && pingHost(lcdMarqueeIPAddress, 8080, 5000)) {  //if it's a valid IP and we can ping it, let's continue
-                setLCDMarqueeHostName(lcdMarqueeIPAddress);
+       
+        if (LCDSearchStartUpDelay_ != 0) {  //because Pixelcade LCD may still be booting up while the arcade computer has already booted, hence this delay
+            System.out.println("LCD Search will begin in " + LCDSearchStartUpDelay_ + " seconds...");
+            LogMe.aLogger.info("LCD Search will begin in " + LCDSearchStartUpDelay_ + " seconds...");
+            TimerTask task = new TimerTask() {
+            public void run() {
+                LCDSearch();
             }
-            else {  //no go so let's launch the lcdfinder and see what we discover via mdns
-                 System.out.println("[WARNING] Pixelcade LCD is enabled but was not detected");
-                 System.out.println("[WARNING] This will slow down performance of Pixelcade LED so please");
-                 System.out.println("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD");
-                 LogMe.aLogger.info("[WARNING] Pixelcade LCD is enabled but was not detected");
-                 LogMe.aLogger.info("[WARNING] This will slow down performance of Pixelcade LED so please");
-                 LogMe.aLogger.info("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD");
-                 //BUT let's do a scan at this point and see if we can find it
-                 if (LCDSearchRan == false) {  //this can only run once
-                     LogMe.aLogger.info("Could not find LCD, let's use the LCD finder and see if we can find it via mdns");
-                     lcdfinder LCDfinder_ = new lcdfinder();
-                     LCDReturn = LCDfinder_.getLCD(getLCDMarqueeHostName());
-                     LCDSearchRan = true;
-                 }
-             }
-       } 
+            };
+            Timer timer = new Timer("Timer");
+
+            long delay = Long.valueOf(LCDSearchStartUpDelay_*1000); 
+            timer.schedule(task, delay);
+        
+        }
+        else {
+                LCDSearch();
+        }
        
        LCDPixelcade lcdDisplay = new LCDPixelcade();
             try {
@@ -808,8 +801,6 @@ public class WebEnabledPixel  {
             }catch (FontFormatException|IOException| NullPointerException e){
               System.out.println("Could not set lcd font from: " + pixelHome + "fonts/" + defaultFont + ".ttf" +" :(...\n");
         }
-       
-       
     }
              
     
@@ -883,6 +874,54 @@ public class WebEnabledPixel  {
     
     
   }
+  
+  public static void LCDSearch() {
+      if (pingHost(getLCDMarqueeHostName(), 8080, 5000)) {    
+            System.out.print("[PIXELCADE LCD FOUND] : " + getLCDMarqueeHostName() + "\n");
+            LogMe.aLogger.info("[PIXELCADE LCD FOUND] : " + getLCDMarqueeHostName());
+            LCDFound_ = true;
+      }
+      else {  //ok didn't find so let's try using the IP address IF we have a valid IP
+            if (validIP(lcdMarqueeIPAddress) && pingHost(lcdMarqueeIPAddress, 8080, 5000)) {  //if it's a valid IP and we can ping it, let's continue
+                setLCDMarqueeHostName(lcdMarqueeIPAddress);
+                System.out.println("[PIXELCADE LCD FOUND BY IP Address] Using IP Address " + lcdMarqueeIPAddress + " to reach Pixelcade LCD");
+                LogMe.aLogger.info("[PIXELCADE LCD FOUND BY IP Address] Using IP Address " + lcdMarqueeIPAddress + " to reach Pixelcade LCD");
+                LCDFound_ = true;
+            }
+            else {  //no go so let's launch the lcdfinder and see what we discover via mdns, this only checks for xxxxxxx-x ie the hostname was incremented which in theory should not happen with the announce fix from Kai
+                
+                 //BUT let's do a scan at this point and see if we can find it
+                
+                     System.out.println("Could not find LCD, let's use the LCD finder and see if we can find it via mdns");
+                     LogMe.aLogger.info("Could not find LCD, let's use the LCD finder and see if we can find it via mdns");
+                     lcdfinder LCDfinder_ = new lcdfinder();
+                     LCDFound_ = LCDfinder_.getLCD(getLCDMarqueeHostName());
+                     LCDSearchRanCounter++; 
+                     
+                    if (LCDFound_) {
+                        System.out.println("[PIXELCADE LCD FOUND via mDNS Search] " + getLCDMarqueeHostName());
+                        LogMe.aLogger.info("[PIXELCADE LCD FOUND via mDNS Search] " + getLCDMarqueeHostName());
+                    } else {
+                        System.out.println("[WARNING] Pixelcade LCD is enabled but was not detected");
+                        System.out.println("[WARNING] This will slow down performance of Pixelcade LED so please");
+                        System.out.println("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD");
+                        LogMe.aLogger.info("[WARNING] Pixelcade LCD is enabled but was not detected");
+                        LogMe.aLogger.info("[WARNING] This will slow down performance of Pixelcade LED so please");
+                        LogMe.aLogger.info("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD");
+                        System.out.println("Please check network connectivity for Pixelcade LCD and then run the Pixelcade LCD Pairing Utility");
+                        LogMe.aLogger.info("Please check network connectivity for Pixelcade LCD and then run the Pixelcade LCD Pairing Utility");
+                    }
+             }
+       } 
+  }
+  
+public boolean isNumeric(String strNum) {
+    if (strNum == null) {
+        return false; 
+    }
+    return pattern.matcher(strNum).matches();
+}
+
   
   private void createControllers()
     {
@@ -1119,6 +1158,14 @@ public static boolean validIP (String ip) {
       LogMe.aLogger.info("console.csv file NOT FOUND");
     } 
     return ConsoleMapped;
+  }
+  
+  public static int getLCDSearchCounter() {
+      return LCDSearchRanCounter;
+  }
+  
+  public static void setLCDSearchCounter() {
+       LCDSearchRanCounter++;
   }
   
   public static int getMatrixID() {

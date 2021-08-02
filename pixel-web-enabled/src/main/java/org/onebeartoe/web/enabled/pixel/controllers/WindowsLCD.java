@@ -1,6 +1,6 @@
 
 package org.onebeartoe.web.enabled.pixel.controllers;
-
+//this class not used, it was an experiment to see if LCD could be run off the 2nd HDMI but never worked out
 import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.embed.swing.JFXPanel;

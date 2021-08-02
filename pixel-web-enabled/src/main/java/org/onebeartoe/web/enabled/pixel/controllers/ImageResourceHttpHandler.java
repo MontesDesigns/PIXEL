@@ -74,9 +74,10 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
             int i = path.lastIndexOf("/") + 1;
             String name = path.substring(i);
             
+            
             if (WebEnabledPixel.getLCDMarquee().equals("yes") && (path.contains("/arcade/") || path.contains("/console/") )) {  //relaying the api call to pixelcadedx.local but don't relay quit and shutdown commands
                 try {
-                    if (InetAddress.getByName(getLCDMarqueeHostName()).isReachable(5000)){ //to do should we be checking everytime if reachable?
+                    if (InetAddress.getByName(getLCDMarqueeHostName()).isReachable(5000)) { //to do should we be checking everytime if reachable?
                         WebEnabledPixel.dxEnvironment = true;
                         //if it's a console call, let's re-direct to arcade because pixelcade embedded doesn't know about the console calls
                         if (requestURI.getPath().contains("console")) {
@@ -85,21 +86,26 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
                              consoleName = consoleName.replace(" ", "_"); //had to add this one as Dennis made change to send native console names with no more _
                              
                              consoleNameExtension = FilenameUtils.getExtension(consoleName);
-                             if (arcadeNameExtension.isEmpty()) {  //if its empty, then we need to add the extension
-                                    redirect = "/arcade/stream/mame/" + consoleName + ".jpg";
-                                    //redirect = "/console/stream/" + consoleName + ".jpg";  //this may break on Pi LCD as it doesn't accept console
-                             }
-                             else {  //there is already an extension so no need to add an additional one
-                                    redirect = "/arcade/stream/mame/" + consoleName;
-                                    //redirect = "/console/stream/" + consoleName + ".jpg";
-                             }
                              
-                             //String redirect = "/console/stream/" + consoleName + ".jpg";
-                             URL url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + redirect);
-                             HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                             con.setRequestMethod("GET");
-                             con.getResponseCode();
-                             con.disconnect();
+                             if (!consoleName.equals("black")) {  
+                                if (arcadeNameExtension.isEmpty()) {  //if its empty, then we need to add the extension
+                                       redirect = "/arcade/stream/default/" + consoleName + ".jpg"; //made this change so users can maintain console artwork in one place
+                                       //redirect = "/arcade/stream/mame/" + consoleName + ".jpg";
+                                       //redirect = "/console/stream/" + consoleName + ".jpg";  //this may break on Pi LCD as it doesn't accept console
+                                }
+                                else {  //there is already an extension so no need to add an additional one
+                                       redirect = "/arcade/stream/default/" + consoleName;
+                                       //redirect = "/arcade/stream/mame/" + consoleName;
+                                       //redirect = "/console/stream/" + consoleName + ".jpg";
+                                }
+
+                                //String redirect = "/console/stream/" + consoleName + ".jpg";
+                                URL url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + redirect);
+                                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                                con.setRequestMethod("GET");
+                                con.getResponseCode();
+                                con.disconnect();
+                             }
                         }
                         else { // it's not a console call
                             //System.out.println("Requested: " + requestURI.getPath());  
@@ -142,22 +148,29 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
 //                            else { 
                                 
                                 //let's see if the front end also included the extension
-                                arcadeNameExtension = FilenameUtils.getExtension(gameName);
-                                if (arcadeNameExtension.isEmpty()) {  //if its empty, then we need to add the extension
-                                    revisedURL = "/arcade/stream/" + console + "/" + gameName + ".jpg"; //console has the _ and game name will be original with spaces
+                                if (!gameName.equals("dummy")) {                                          // let's no longer send the black frame calls to LCD
+                                    arcadeNameExtension = FilenameUtils.getExtension(gameName);
+                                    if (arcadeNameExtension.isEmpty()) {  //if its empty, then we need to add the extension
+                                        revisedURL = "/arcade/stream/" + console + "/" + gameName + ".jpg"; //console has the _ and game name will be original with spaces
+                                    }
+                                    else {  //there is already an extension so no need to add an additional one
+                                        revisedURL = "/arcade/stream/" + console + "/" + gameName;
+                                    }
+
+                                    revisedURL = revisedURL.replace(" ","%20"); //if we don't add this, the URL call wont' make it and will be truncated at the spaces
+
+                                    URL url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + revisedURL);
+                                    HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                                    con.setRequestMethod("GET");
+                                    con.getResponseCode();
+                                    con.disconnect();
                                 }
-                                else {  //there is already an extension so no need to add an additional one
-                                    revisedURL = "/arcade/stream/" + console + "/" + gameName;
-                                }
-                                
-                                revisedURL = revisedURL.replace(" ","%20"); //if we don't add this, the URL call wont' make it and will be truncated at the spaces
-                                
-                                URL url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + revisedURL);
-                                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                                con.setRequestMethod("GET");
-                                con.getResponseCode();
-                                con.disconnect();
                            // }
+                        }
+                    } else { //let's do a second time LCD search if it's not reachable
+                        if (WebEnabledPixel.getLCDSearchCounter() < 2) {  //it ran one time during startup so let's try one more time. But not after that as perf will be bad
+                            WebEnabledPixel.LCDSearch();
+                            WebEnabledPixel.setLCDSearchCounter(); //this will make the counter 2 so we won't run this again
                         }
                     }
                 }catch (  Exception e){}
