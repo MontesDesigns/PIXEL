@@ -1,6 +1,7 @@
 
 package org.onebeartoe.pixel;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
@@ -21,6 +22,8 @@ public class LogMe {
 
   public static final Logger aLogger = Logger.getLogger("myLogger");
     private static LogMe instance = null;
+   
+    
     public static LogMe getInstance(){
         if(instance==null){
             getLoggerReady();
@@ -33,6 +36,10 @@ public class LogMe {
             
             //FileHandler fh = new FileHandler(Pixel.getHomePath() + "pixelcade.log"); //this is returning null
             int FILE_SIZE = 5000 * 1024;  //limit log file to 5 MB
+            
+            //let's write the log to the media folder the user can see IF it exists
+            
+           
             FileHandler fh = new FileHandler("pixelweb.log", FILE_SIZE, 1, false); //overwrite log each time pixelweb is launched
             //FileHandler fh = new FileHandler("pixelweb.log");
             //fh.setFormatter(new SimpleFormatter());

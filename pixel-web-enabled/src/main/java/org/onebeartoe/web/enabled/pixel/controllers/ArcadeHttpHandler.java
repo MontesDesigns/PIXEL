@@ -39,16 +39,24 @@ import static org.onebeartoe.web.enabled.pixel.WebEnabledPixel.setCurrentPlatfor
 
 
 public class ArcadeHttpHandler extends ImageResourceHttpHandler {
-  protected LCDPixelcade lcdDisplay = null;
+  //protected LCDPixelcade lcdDisplay = null;
   private static  Integer LEDStripRed = 0;
   private static Integer LEDStripGreen = 0;
   private static Integer LEDStripBlue = 0;
+//  private static String speed_ = null;
+//  private static Long speed = null;
+//  private static int scrollsmooth_ = 1;
+//  private static Long speeddelay_ = Long.valueOf(10L);
+//  private static int fontSize_ = 0;
+//  private static int yOffset_ = 0;
+//  private static int lines_ = 1;
+//  private static String font_ = null;
 
   public ArcadeHttpHandler(WebEnabledPixel application) {
     super(application);
     
-    if(WebEnabledPixel.getLCDMarquee().equals("yes"))
-       lcdDisplay = new LCDPixelcade();
+    //if(WebEnabledPixel.getLCDMarquee().equals("yes")) //no longer needed since we are not doings 2nd HDMI use case
+    //   lcdDisplay = new LCDPixelcade();
 
     this.basePath = "";
     this.defaultImageClassPath = "btime.png";
@@ -63,15 +71,37 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
     
   }
   
-  public void handleGIF(String consoleName, String arcadeName, Boolean saveAnimation, int loop) {
+  public void handlePNGCycle(File PNGFileFullPath, Boolean writeMode, int loop, String consoleNameMapped, String PNGNameWithExtension, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth) {  //per AtGames request, this will loop between a PNG/GIF and Scrolling Text until Q is interrupted
     Pixel pixel = this.application.getPixel();
     try {
-      pixel.writeArcadeAnimation(consoleName, arcadeName, saveAnimation.booleanValue(), loop, WebEnabledPixel.pixelConnected);
-
+      pixel.ArcadeCyclePNG(PNGFileFullPath,false, loop, consoleNameMapped, PNGNameWithExtension, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard code text loop to 1 as the png loop will be longer like 5s 
     } catch (NoSuchAlgorithmException ex) {
       Logger.getLogger(ArcadeHttpHandler.class.getName()).log(Level.SEVERE, (String)null, ex);
     }
   }
+  
+  public void handleGIF(String consoleName, String arcadeName, Boolean saveAnimation, int loop) {   
+    Pixel pixel = this.application.getPixel();
+    try {
+      pixel.writeArcadeAnimation(consoleName, arcadeName, saveAnimation.booleanValue(), loop, WebEnabledPixel.pixelConnected);
+    } catch (NoSuchAlgorithmException ex) {
+      Logger.getLogger(ArcadeHttpHandler.class.getName()).log(Level.SEVERE, (String)null, ex);
+    }
+  }
+  
+   public void handleGIFCycle(String consoleName, String arcadeName, boolean writeMode, int Marqueeloop, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth) {  //per AtGames request, this will loop between a PNG/GIF and Scrolling Text until Q is interrupted
+    Pixel pixel = this.application.getPixel();
+    try {
+      //pixel.writeArcadeAnimation(consoleName, arcadeName, saveAnimation.booleanValue(), loop, WebEnabledPixel.pixelConnected);
+      pixel.ArcadeCycleGIF(consoleName, arcadeName, false, Marqueeloop, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard coding the text loop to 1
+      
+      //String selectedPlatformName, String selectedFileName, boolean writeMode, int Marqueeloop, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth
+    } catch (NoSuchAlgorithmException ex) {
+      Logger.getLogger(ArcadeHttpHandler.class.getName()).log(Level.SEVERE, (String)null, ex);
+    }
+  }
+  
+  
   
   public void writeImageResource(String urlParams) throws IOException, ConnectionLostException {
     Pixel pixel = this.application.getPixel();
@@ -117,6 +147,7 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
     int lines_ = 1;
     String font_ = null;
     String event_ = null;
+    boolean cycle_ = false;
     
     pixelHome = WebEnabledPixel.getHome();
     
@@ -219,6 +250,9 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
           case "event":
            event_ = param.getValue();
            break;
+          case "cycle":  //cycles indefintely from PNG/GIF to Text until Q is interrupted
+           cycle_ = true;
+           break;
         } 
       } 
       
@@ -263,6 +297,55 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
       
       //set the vars for the API of the current / last game
       setCurrentPlatformGame(consoleNameMapped,arcadeNameOnly);
+      
+      //let's set the text & font properties if we have alt text
+      if (text_ != "" && !WebEnabledPixel.isMister()) {  //scrolling text does not work on MiSTER :-(
+                  
+                int LED_MATRIX_ID = WebEnabledPixel.getMatrixID();
+                speed = Long.valueOf(WebEnabledPixel.getScrollingTextSpeed(LED_MATRIX_ID));
+                if (speed_ != null) {
+                  speed = Long.valueOf(speed_);
+                  if (speed.longValue() == 0L)
+                    speed = Long.valueOf(10L); 
+                } 
+
+                if (scrollsmooth_ == 0) {
+                  String scrollSpeedSettings = WebEnabledPixel.getTextScrollSpeed();
+                  scrollsmooth_ = WebEnabledPixel.getScrollingSmoothSpeed(scrollSpeedSettings);
+                } 
+
+                if (font_ == null)
+                  font_ = WebEnabledPixel.getDefaultFont(); 
+
+                this.application.getPixel();
+                Pixel.setFontFamily(font_);
+                if (yOffset_ == 0)
+                  yOffset_ = WebEnabledPixel.getDefaultyTextOffset(); 
+
+                this.application.getPixel();
+                Pixel.setYOffset(yOffset_);
+                if (fontSize_ == 0)
+                  fontSize_ = WebEnabledPixel.getDefaultFontSize(); 
+                this.application.getPixel();
+                Pixel.setFontSize(fontSize_);
+
+                if (lines_ == 2) 
+                    Pixel.setDoubleLine(true);
+                else if (lines_ == 4)
+                    Pixel.setFourLine(true);
+                else
+                    Pixel.setDoubleLine(false); //don't forget to set it back
+                
+                 if (color_ == null) {
+                    if (WebEnabledPixel.getTextColor().equals("random")) {
+                      color = WebEnabledPixel.getRandomColor();
+                    } else {
+                      color = WebEnabledPixel.getColorFromHexOrName(WebEnabledPixel.getTextColor());
+                    } 
+                  } else {
+                    color = WebEnabledPixel.getColorFromHexOrName(color_);
+                } 
+      }  
       
       //let's find the matching PNG
       
@@ -369,16 +452,6 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
             LogMe.aLogger.info("Looking for GIF: " + requestedPath + ".gif");
       }  
       
-       if (color_ == null) {
-            if (WebEnabledPixel.getTextColor().equals("random")) {
-              color = WebEnabledPixel.getRandomColor();
-            } else {
-              color = WebEnabledPixel.getColorFromHexOrName(WebEnabledPixel.getTextColor());
-            } 
-          } else {
-            color = WebEnabledPixel.getColorFromHexOrName(color_);
-        } 
-      
       if (streamOrWrite.equals("write")) {
                 saveAnimation = true;
                 if (WebEnabledPixel.arduino1MatrixConnected) {
@@ -392,12 +465,13 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
                   handlePNG(arcadeFilePNG, Boolean.valueOf(saveAnimation), loop_, consoleNameMapped, FilenameUtils.getName(arcadeFilePathPNG));
 
                 } else if (text_ != "" && !text_.equals("nomatch")) {
-                int LED_MATRIX_ID = WebEnabledPixel.getMatrixID();
-                speed = Long.valueOf(10L);
-                speed = Long.valueOf(WebEnabledPixel.getScrollingTextSpeed(LED_MATRIX_ID));
-
-                if (speeddelay_.longValue() != 10L)
-                    speed = speeddelay_; 
+                    
+//                int LED_MATRIX_ID = WebEnabledPixel.getMatrixID();
+//                speed = Long.valueOf(10L);
+//                speed = Long.valueOf(WebEnabledPixel.getScrollingTextSpeed(LED_MATRIX_ID));
+//
+//                if (speeddelay_.longValue() != 10L)
+//                    speed = speeddelay_; 
 
 //                if (color_ != null)
 //                    color = WebEnabledPixel.getColorFromHexOrName(color_);
@@ -451,88 +525,90 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
         //TO DO need to handle PNG without (
        
         if (arcadeFilePNG.exists() && !arcadeFilePNG.isDirectory() && arcadeFileGIF.exists() && !arcadeFileGIF.isDirectory()) {  //if there is both a png and a gif, we'll play gif and then png
-          //original code which wasn't working with the Q and high scores for example
-          //handlePNG(arcadeFilePNG, Boolean.valueOf(false), 0, "black", "nodata");
-          //handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), loop_); 
-          //handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), 1); //have to loop the gif at least one to get Q going
-          
-          //so the problem is if the user is scrolling from the front end, we need to stop the Q but we need the Q here to play GIF first and then PNG
-          //we could be playing high score scrolling text before here for example
-          
-          //if we're looping, don't interrupt
-          //if we're not loopign like scrolling through front end for example, then yes interrupt
-         
-          
-          if (pixel.getLoopStatus() == false || event_.equals("FEScroll")) {   //note if it's a text scroll before this like high score for example, that would be looping so we won't interrupt here
-              handlePNG(arcadeFilePNG, Boolean.valueOf(false), 0, "black", "nodata"); //interrupting the previous one playing
-              //System.out.println("FEScroll Interrupt");
-          }
-          
-          if (loop_ == 0 || loop_ == 99999) {  //we'll need to loop the GIF in the Q before the PNG plays, had to add 99999 because the gif will loop on 99999 forever and not get to the PNG
-             loop_ = 1; 
-          }
-          
-          handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), loop_); //send the gif with a loop
-          handlePNG(arcadeFilePNG, Boolean.valueOf(saveAnimation), 99999, consoleNameMapped, arcadeNameOnlyPNG + ".png"); //send the PNG with 99999 so stays on the PNG, changed to arcadeNameOnlyPNG as the GIF can now be different with the animation versions
-          
-          //to do known issue here in that if scrolling through front end and one with gif and png are selected back to back, the second one won't interrupt and must complete before the next
-        
-        } else if (arcadeFilePNG.exists() && !arcadeFilePNG.isDirectory()) {
-          handlePNG(arcadeFilePNG, Boolean.valueOf(saveAnimation), loop_, consoleNameMapped, arcadeNameOnlyPNG + ".png");
+            //original code which wasn't working with the Q and high scores for example
+            //handlePNG(arcadeFilePNG, Boolean.valueOf(false), 0, "black", "nodata");
+            //handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), loop_); 
+            //handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), 1); //have to loop the gif at least one to get Q going
 
-	} else if (arcadeFileGIF.exists() && !arcadeFileGIF.isDirectory()) {
-          handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), loop_);
-        
-        } else if (text_ != "" && !text_.equals("nomatch")) {
+            //so the problem is if the user is scrolling from the front end, we need to stop the Q but we need the Q here to play GIF first and then PNG
+            //we could be playing high score scrolling text before here for example
 
-          int LED_MATRIX_ID = WebEnabledPixel.getMatrixID();
-          speed = Long.valueOf(WebEnabledPixel.getScrollingTextSpeed(LED_MATRIX_ID));
-          if (speed_ != null) {
-            speed = Long.valueOf(speed_);
-            if (speed.longValue() == 0L)
-              speed = Long.valueOf(10L); 
-          } 
+            //if we're looping, don't interrupt
+            //if we're not loopign like scrolling through front end for example, then yes interrupt
+
+
+            if (pixel.getLoopStatus() == false || event_.equals("FEScroll")) {   //note if it's a text scroll before this like high score for example, that would be looping so we won't interrupt here
+                handlePNG(arcadeFilePNG, Boolean.valueOf(false), 0, "black", "nodata"); //interrupting the previous one playing
+                //System.out.println("FEScroll Interrupt");                             // to do this is an issue for front end who have not added FEScroll
+            }
+
+            if (loop_ == 0 || loop_ == 99999) {  //we'll need to loop the GIF in the Q before the PNG plays, had to add 99999 because the gif will loop on 99999 forever and not get to the PNG
+               loop_ = 1;                       // to do this is screwing up other stuff
+            }
+
+            if (cycle_ && !WebEnabledPixel.isMister()) {  //scrolling text does not work on MiSTER :-(
+
+                if (text_ != "") {
+                  handleGIFCycle(consoleNameMapped, arcadeNameOnly + ".gif", false, loop_,true,text_,loop_,speed,color,scrollsmooth_);
+                }
+                else {
+                  System.out.println("[ERROR] The cycle param must also have text specified");
+                }
+
+            }
+            else {
+                 handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), loop_); //send the gif with a loop
+                 handlePNG(arcadeFilePNG, Boolean.valueOf(saveAnimation), 99999, consoleNameMapped, arcadeNameOnlyPNG + ".png"); //send the PNG with 99999 so stays on the PNG, changed to arcadeNameOnlyPNG as the GIF can now be different with the animation versions
+            }
+
+            //to do known issue here in that if scrolling through front end and one with gif and png are selected back to back, the second one won't interrupt and must complete before the next
+        
+        } else if (arcadeFilePNG.exists() && !arcadeFilePNG.isDirectory()) {  //there is only a PNG match
+            
+                if (cycle_) {
+                      handlePNGCycle(arcadeFilePNG, false, loop_,consoleNameMapped,arcadeNameOnlyPNG + ".png",true,text_,loop_,speed,color,scrollsmooth_);
+                }  
+                else {    
+                      handlePNG(arcadeFilePNG, Boolean.valueOf(saveAnimation), loop_, consoleNameMapped, arcadeNameOnlyPNG + ".png");
+                }
+            
+	} else if (arcadeFileGIF.exists() && !arcadeFileGIF.isDirectory()) {                                //we only have a GIF so let's play the GIF
+            
+                if (cycle_ && !WebEnabledPixel.isMister()) {                                                //scrolling text does not work on MiSTER :-(
+
+                    if (text_ != "") {
+                      handleGIFCycle(consoleNameMapped, arcadeNameOnly + ".gif", false, loop_,true,text_,loop_,speed,color,scrollsmooth_);
+                    }
+                    else {
+                      System.out.println("[ERROR] The cycle param must also have text specified");
+                    }
+
+                } else {
+                    handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), loop_);
+                }
+                
+        } else if (text_ != "" && !text_.equals("nomatch")) {                                               //alt text was specified and we could not find a PNG or GIF so let's scroll text
+            
+                if (!WebEnabledPixel.isMister())  {
+                    pixel.scrollText(text_, loop_, speed.longValue(), color, WebEnabledPixel.pixelConnected, scrollsmooth_);
+                }
           
-          if (scrollsmooth_ == 0) {
-            String scrollSpeedSettings = WebEnabledPixel.getTextScrollSpeed();
-            scrollsmooth_ = WebEnabledPixel.getScrollingSmoothSpeed(scrollSpeedSettings);
-          } 
-          
-          if (font_ == null)
-            font_ = WebEnabledPixel.getDefaultFont(); 
-          
-          this.application.getPixel();
-          Pixel.setFontFamily(font_);
-          if (yOffset_ == 0)
-            yOffset_ = WebEnabledPixel.getDefaultyTextOffset(); 
-          
-          this.application.getPixel();
-          Pixel.setYOffset(yOffset_);
-          if (fontSize_ == 0)
-            fontSize_ = WebEnabledPixel.getDefaultFontSize(); 
-          this.application.getPixel();
-          Pixel.setFontSize(fontSize_);
-          
-          
-        if (lines_ == 2) 
-            Pixel.setDoubleLine(true);
-        else if (lines_ == 4)
-            Pixel.setFourLine(true);
-        else
-            Pixel.setDoubleLine(false); //don't forget to set it back
-          
-            if (!WebEnabledPixel.isMister())  {
-                pixel.scrollText(text_, loop_, speed.longValue(), color, WebEnabledPixel.pixelConnected, scrollsmooth_);
-            }    
-          
-         
-        } else {
+        } else {                                                                                            //no alt text was given and no PNG or GIF match so let's get the default console GIF
                 consoleFilePathPNG = pixelHome + "console/default-" + consoleNameMapped + ".png";
                 File consoleFilePNG = new File(consoleFilePathPNG);
                 consoleFilePathGIF = pixelHome + "console/default-" + consoleNameMapped + ".gif";
                 File consoleFileGIF = new File(consoleFilePathGIF);
                 if (consoleFilePNG.exists() && !consoleFilePNG.isDirectory()) {
-                  handlePNG(consoleFilePNG, Boolean.valueOf(saveAnimation), loop_, "console", FilenameUtils.getName(consoleFilePathPNG));
+                    
+                    
+                    if (cycle_ && text_ != "" && !WebEnabledPixel.isMister()) {
+                          handlePNGCycle(consoleFilePNG, false, loop_,"console",FilenameUtils.getName(consoleFilePathPNG),true,text_,loop_,speed,color,scrollsmooth_);
+                    }  
+                    else {    
+                          handlePNG(consoleFilePNG, Boolean.valueOf(saveAnimation), loop_, "console", FilenameUtils.getName(consoleFilePathPNG));
+                    } 
+                  
+                  
                 } else if (consoleFileGIF.exists() && !consoleFileGIF.isDirectory()) {
                   if (!CliPixel.getSilentMode()) {
                     System.out.println("PNG default console LED Marquee file not found, looking for GIF version: " + consoleFilePathPNG);
@@ -558,9 +634,9 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
               } 
       } 
     } else {
-      System.out.println("** ERROR ** URL format incorect, use http://localhost:8080/arcade/<stream or write>/<platform name>/<game name .gif or .png>");
+      System.out.println("[ERROR] URL format incorect, use http://localhost:8080/arcade/<stream or write>/<platform name>/<game name .gif or .png>");
       System.out.println("Example: http://localhost:8080/arcade/write/mame/pacman.png or http://localhost:8080/arcade/stream/atari2600/digdug.gif");
-      LogMe.aLogger.severe("** ERROR ** URL format incorect, use http://localhost:8080/arcade/<stream or write>/<platform name>/<game name .gif or .png>");
+      LogMe.aLogger.severe("[ERROR] URL format incorect, use http://localhost:8080/arcade/<stream or write>/<platform name>/<game name .gif or .png>");
       LogMe.aLogger.severe("Example: http://localhost:8080/arcade/write/mame/pacman.png or http://localhost:8080/arcade/stream/atari2600/digdug.gif");
       
       //the URL call was bad so lets just display a default so at least something happens
@@ -570,18 +646,42 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
       
     } 
   }
+
+  
+//  final class textProperties  //turned out we don't need this
+//{
+//    public long speed;
+//    public int scrollsmooth_;
+//    public String font_;
+//    public int yOffset_;
+//    public int fontSize_;
+//    public int lines_;
+//    
+// 
+//    public textProperties(long speed, int scrollsmooth_, String font_, int yOffset, int fontSize_, int lines_)
+//    {
+//        this.speed = speed;
+//        this.scrollsmooth_ = scrollsmooth_;
+//        this.font_ = font_;
+//        this.yOffset_ = yOffset_;
+//        this.fontSize_ = fontSize_;
+//        this.lines_ = lines_;
+//        
+//    }
+//}
+
   
   private static void setStripColor (File file) {
         
-            try {
-                processPNGDominateColor(file);
-            } catch (IOException ex) {
-                Logger.getLogger(ArcadeHttpHandler.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            System.out.println("Red: " + LEDStripRed);
-            System.out.println("Green: " + LEDStripGreen);
-            System.out.println("Blue: " + LEDStripBlue);
-            WebEnabledPixel.setLEDStripColor(LEDStripRed, LEDStripGreen, LEDStripBlue);
+    try {
+        processPNGDominateColor(file);
+    } catch (IOException ex) {
+        Logger.getLogger(ArcadeHttpHandler.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    System.out.println("Red: " + LEDStripRed);
+    System.out.println("Green: " + LEDStripGreen);
+    System.out.println("Blue: " + LEDStripBlue);
+    WebEnabledPixel.setLEDStripColor(LEDStripRed, LEDStripGreen, LEDStripBlue);
 }
            
   public static boolean consoleMatch(String[] arr, String targetValue) {

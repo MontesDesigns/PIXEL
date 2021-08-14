@@ -1,6 +1,6 @@
 
 package org.onebeartoe.pixel.hardware;
-
+//LED
 import ioio.lib.api.AnalogInput;
 import ioio.lib.api.IOIO;
 import ioio.lib.api.RgbLedMatrix;
@@ -263,6 +263,8 @@ public class Pixel
     private int lastGIFTotalFrames = 0;
     private ArrayList<Integer> GIFTotalFrames = new ArrayList<>();
     
+    private static Boolean cycleFlag = false;
+    
     //private TimerTask animateTimer = new AnimateTimer();
     
     /**
@@ -490,6 +492,7 @@ public class Pixel
                     loopGIFCounter = 0;
                     loopTimesGlobal = 0;
                     PixelQueue.clear();
+                    cycleFlag = false;
                     playLocalMode(); //and then let's play local mode
                 }
             }
@@ -1837,6 +1840,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         this.loopScrollingTextCounter = 0;
         this.loopTimesGlobal = 0;
         this.PixelQueue.clear();
+        cycleFlag = false;
       } 
       stopExistingTimer();
       interactiveMode();
@@ -3206,6 +3210,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         
         if (PixelQueue.size() > 50) {      //kind of a hack, adding this for LCD, we don't want the Q getting too big and taking up too much memory
             PixelQueue.clear();
+            cycleFlag = false;
             System.out.println("Max Queue Size Exceeded, Clearing Queue"); 
         }
         
@@ -3303,6 +3308,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                     loopGIFCounter = 0;
                     loopTimesGlobal = 0;
                     PixelQueue.clear();
+                    cycleFlag = false; //this flag is for the cycle param that AtGames wanted for cycling marquees and high scores during game play
                 }
 
                 if (isWindows()) {
@@ -3415,6 +3421,22 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
       }
     }
     
+    public void ArcadeCycleGIF(String selectedPlatformName, String selectedFileName, boolean writeMode, int Marqueeloop, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth) throws NoSuchAlgorithmException
+            
+    {
+        //we first need to check that pixel is connected and if not, let's write it to the queue
+        //ledblinky needed this because ledblanky calls pixelweb.exe and then immediately sends some commands
+        if (pixelConnected) {
+            //let's add two items to the Q and then play the Q
+            addtoQueue("gif",selectedPlatformName,selectedFileName,Marqueeloop,writeMode,Color.red,1);
+            addtoQueue("text", text, Long.toString(speed), Textloop, Boolean.valueOf(false), color, scrollsmooth);
+            cycleFlag = true;
+            doneLoopingCheckQueue(cycleFlag);  //add true
+        } 
+    }
+    
+    
+    
      public void writePinballAnimation(String selectedPlatformName, String selectedFileName, boolean writeMode, int loop, boolean pixelConnected) throws NoSuchAlgorithmException
     {
        
@@ -3447,6 +3469,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
             loopGIFCounter = 0;
             loopTimesGlobal = 0;
             PixelQueue.clear();
+            cycleFlag = false;
                 
 
                 if (isWindows()) {
@@ -3587,6 +3610,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                        loopGIFCounter = 0;
                        loopTimesGlobal = 0;
                        PixelQueue.clear();
+                       cycleFlag = false;  //every time we clear the Q, we need to clear this cycle flag back to false
                    }
 
 
@@ -3765,6 +3789,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         loopGIFCounter = 0;
         loopTimesGlobal = 0;
         PixelQueue.clear();
+        cycleFlag = false;
         
         
         stopExistingTimer();
@@ -3852,6 +3877,20 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         } 
     }
     
+    public void ArcadeCyclePNG(File PNGFileFullPath, Boolean writeMode, int loop, String consoleNameMapped, String PNGNameWithExtension, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth) throws NoSuchAlgorithmException
+            
+    {
+        //we first need to check that pixel is connected and if not, let's write it to the queue
+        //ledblinky needed this because ledblanky calls pixelweb.exe and then immediately sends some commands
+        if (pixelConnected) {
+            //let's add two items to the Q and then play the Q
+            addtoQueue("png",consoleNameMapped,PNGNameWithExtension,loop,writeMode,Color.red,1);
+            addtoQueue("text", text, Long.toString(speed), Textloop, Boolean.valueOf(false), color, scrollsmooth);
+            cycleFlag = true;
+            doneLoopingCheckQueue(cycleFlag);  //add true
+        } 
+    }
+    
     public void writeArcadeImage(File PNGFileFullPath, Boolean writeMode, int loop, String consoleNameMapped, String PNGNameWithExtension, boolean pixelConnected) throws IOException {
         
         //System.out.println("PNG loop status: " + isLooping);
@@ -3891,6 +3930,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                     loopPNGCounter = 0;
                     loopTimesGlobal = 0;
                     PixelQueue.clear();
+                    cycleFlag = false;
                 }
 
                 URL url = null; 
@@ -4257,6 +4297,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 loop99999FlagGIF = false; //reset the flag
                 System.out.println("Clearing Queue and Playing Indefintately");
                 PixelQueue.clear(); //let's clear the Q
+                cycleFlag = false;
             }
             
             else if (isLooping == true && loopGIFCounter >= loopTimesGlobal) {  //first of all, we must be in loop mode and if so have we finished all of our loops
@@ -4266,7 +4307,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 isLooping = false;
                 loop99999FlagGIF = false; //reset the flag
                 System.out.println("Done looping GIF, now checking Queue");
-                doneLoopingCheckQueue();
+                doneLoopingCheckQueue(cycleFlag);
                 
             } else {
            
@@ -4331,6 +4372,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 loop99999FlagPNG = false; //reset the flag
                 System.out.println("Clearing Queue and Playing Indefintately");
                 PixelQueue.clear(); //let's clear the Q
+                cycleFlag = false;
             }
             
             
@@ -4340,7 +4382,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 loopTimesGlobal = 0;
                 isLooping = false;
                 System.out.println("Done time looping PNG, now checking Queue");
-                doneLoopingCheckQueue();
+                doneLoopingCheckQueue(cycleFlag);
             }
         }
 
@@ -4352,7 +4394,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
      
      
     
-    public void doneLoopingCheckQueue() {
+    public void doneLoopingCheckQueue(boolean cycle_) {
         
         /* Queue structure
         gif or image
@@ -4367,6 +4409,8 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         String filenameWithExt_ = null;
         int loop_ = 0;
         boolean writeMode_ = false;
+        String QueueCommand = null;
+        
         
         String text_ = null;
         Long speed_ = null;
@@ -4386,8 +4430,13 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
              
               System.out.println("Processing items in the Queue");
               //we've got some stuff in the queue so let's process
-              String QueueCommand = PixelQueue.element(); //get the item in the top of the queue
+              QueueCommand = PixelQueue.element(); //get the item in the top of the queue
               String [] QueueCommandArray = QueueCommand.split(";"); 
+              
+              if (cycle_)  {//cycle means we will cycle between scrolling text and a GIF or PNG, this was a request from AtGames
+                PixelQueue.add(QueueCommand);    //so we'll just add to the Q so the Q is never empty until we get an interrupt command
+                System.out.println("Cycle Mode");
+              }  
               
               /*
                System.out.println("Q Length: " + QueueCommandArray.length);
@@ -4403,6 +4452,24 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
               if (QueueCommandArray.length == 7) {
                   
                   mode_ = QueueCommandArray[0];
+                  
+//                  if (mode_.equals("cycle")) {
+//                            //T item = PixelQueue.LastOrDefault();
+//                            int size = PixelQueue.size();
+//                            
+//                           
+//
+//                            //access via Iterator
+//                            Iterator<String> iterator = PixelQueue.iterator();
+//                            while(iterator.hasNext(){
+//                              String element = iterator.next();
+//                            }
+//
+//                            //access via new for-loop
+//                            for(String element : queue) {
+//                                //do something with each element
+//                            }
+//                  }
                   
                   if (mode_.equals("gif") || mode_.equals("png") || mode_.equals("animations")) {
                       console_ = QueueCommandArray[1];
@@ -4481,14 +4548,14 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 //
                       //ok, we have everything we need now so let's scroll text
                       
-                        try { 
+                       try { 
                                 PixelQueue.remove(); 
-                            } 
-                        catch (Exception e) { 
+                           } 
+                       catch (Exception e) { 
                                 System.out.println("Exception: " + e);
-                        }
+                       }
                      
-                      scrollText(text_, loop_, speed_, color_, true,scrollsmooth_);
+                       scrollText(text_, loop_, speed_, color_, true,scrollsmooth_);
                       
                   }
                   
@@ -4505,6 +4572,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                       playLocalMode();
                       System.out.println("Executing Queue command for localplayback and clearing the Queue...");
                       PixelQueue.clear();
+                      cycleFlag = false;
                      
                   }
                   
@@ -4525,6 +4593,17 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
          }
         
          
+    }
+    
+    public static <T> T getFromQueue(Queue<T> queue, int index){
+        if(index>=queue.size()){
+            throw new IndexOutOfBoundsException("index="+index+",size="+queue.size());
+        }
+        Queue<T> queueCopy = new LinkedList<T>(queue);
+        for(int i=0; i<index; i++){
+            queueCopy.remove();
+        }
+        return queueCopy.peek();
     }
     
      /* public String getConsoleNamefromMapping(String originalConsoleName)
@@ -5070,32 +5149,18 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
             Pixel.this.loop99999FlagText = Boolean.valueOf(false);
             System.out.println("Clearing Queue and Playing Indefintately");
             Pixel.this.PixelQueue.clear();
+            cycleFlag = false;
           } 
           if (Pixel.this.isLooping.booleanValue() == true && Pixel.this.loopScrollingTextCounter >= Pixel.this.loopTimesGlobal) {
             Pixel.this.loopScrollingTextCounter = 0;
             System.out.println("Done looping scrolling text, now checking Queue");
-            Pixel.this.doneLoopingCheckQueue();
+            Pixel.this.doneLoopingCheckQueue(cycleFlag);
           } 
         } else {
           Pixel.this.x = Pixel.this.x - Pixel.this.scrollingTextMultiplier;
         } 
       } 
-    }
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+    }  
     
     //private class TextScroller extends TimerTask
 //     public class ScrollTextTask implements Runnable 

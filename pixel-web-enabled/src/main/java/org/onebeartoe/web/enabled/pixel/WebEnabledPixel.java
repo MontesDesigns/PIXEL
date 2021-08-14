@@ -91,7 +91,7 @@ public class WebEnabledPixel  {
     
   public static boolean dxEnvironment = true;
   
-  public static String pixelwebVersion = "3.6.5";
+  public static String pixelwebVersion = "3.6.6";
   
   public static LogMe logMe = null;
   
@@ -463,7 +463,6 @@ public class WebEnabledPixel  {
         sec.add("yTextOffset", "0");
         ini.store();
       } 
-      
       
       
       if (sec.containsKey("LCDSearchStartUpDelay")) {
@@ -1993,7 +1992,7 @@ public static boolean validIP (String ip) {
               WebEnabledPixel.pixel.playLocalMode(); 
             
             if (!WebEnabledPixel.pixel.PixelQueue.isEmpty()) {
-              WebEnabledPixel.pixel.doneLoopingCheckQueue();
+              WebEnabledPixel.pixel.doneLoopingCheckQueue(false);
               if (!WebEnabledPixel.silentMode_) {
                 System.out.println("Processing Startup Queue Items...");
                 LogMe.aLogger.info("Processing Startup Queue Items...");
