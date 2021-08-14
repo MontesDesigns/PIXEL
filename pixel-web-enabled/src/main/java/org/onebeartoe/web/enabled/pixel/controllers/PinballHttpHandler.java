@@ -1,5 +1,4 @@
 
-
 package org.onebeartoe.web.enabled.pixel.controllers;
 
 import ioio.lib.api.exception.ConnectionLostException;
@@ -40,8 +39,12 @@ public class PinballHttpHandler extends ImageResourceHttpHandler {
 
   public void handleGIF(String pinTable, String PinAnimationName, Boolean saveAnimation, int loop) {
 
-      //pixel.writeArcadeAnimation(pinTable, PinAnimationName, saveAnimation.booleanValue(), loop, WebEnabledPixel.pixelConnected);
-      //this.application.getPixel().writePinballAnimation(pinTable, PinAnimationName, saveAnimation.booleanValue(), loop, WebEnabledPixel.pixelConnected);
+      try {
+          //pixel.writeArcadeAnimation(pinTable, PinAnimationName, saveAnimation.booleanValue(), loop, WebEnabledPixel.pixelConnected);
+          this.application.getPixel().writePinballAnimation(pinTable, PinAnimationName, saveAnimation.booleanValue(), loop, WebEnabledPixel.pixelConnected);
+      } catch (NoSuchAlgorithmException ex) {
+          Logger.getLogger(PinballHttpHandler.class.getName()).log(Level.SEVERE, null, ex);
+      }
   }
 
 //  public void handleGIF(String pinTable, String PinAnimationName, Boolean saveAnimation, int loop) {
@@ -159,7 +162,7 @@ public class PinballHttpHandler extends ImageResourceHttpHandler {
       PinAnimationName = PinAnimationName.toLowerCase();
 
       
-      String noDefaultsPath = pixelHome + "pinball/" + pinTable + "/nodefaults.txt";
+      String noDefaultsPath = pixelHome + "pinball" + File.separator + pinTable + File.separator + "nodefaults.txt";
       File noDefaultsFile = new File(noDefaultsPath);
       
       if (!CliPixel.getSilentMode()) {
@@ -170,12 +173,12 @@ public class PinballHttpHandler extends ImageResourceHttpHandler {
         LogMe.aLogger.info("Pinball Animation: " + pinAnimationNameOnly);
       } 
       
-      arcadeFilePathGIF = pixelHome + "pinball/" + pinTable + "/" + pinAnimationNameOnly + ".gif";  //pixelcade/pinball/table/animation
+      arcadeFilePathGIF = pixelHome + "pinball" + File.separator + pinTable + File.separator + pinAnimationNameOnly + ".gif";  //pixelcade/pinball/table/animation
       File arcadeFileGIF = new File(arcadeFilePathGIF);
       
       if (arcadeFileGIF.exists() && !arcadeFileGIF.isDirectory()) {
         pinAnimationNameOnly = FilenameUtils.removeExtension(PinAnimationName);
-        pinTable = "pinball/" + pinTable;
+        pinTable = "pinball" + File.separator + pinTable;
       }
       else if (trainingMode) {
         text_ = pinAnimationNameOnly;
@@ -220,11 +223,11 @@ public class PinballHttpHandler extends ImageResourceHttpHandler {
 
             //magic let's look for an s1 - s16  in the specific table folder
               pinAnimationNameOnly = String.format("s%d",res);
-              arcadeFilePathGIF = pixelHome + "pinball/" + pinTable + "/" + pinAnimationNameOnly + ".gif";
+              arcadeFilePathGIF = pixelHome + "pinball" + File.separator + pinTable + File.separator + pinAnimationNameOnly + ".gif";
               arcadeFileGIF = new File(arcadeFilePathGIF);
               if (arcadeFileGIF.exists() && !arcadeFileGIF.isDirectory()) {
                 System.out.println("Magic, in romPath: " + pinAnimationNameOnly);
-                pinTable = "pinball/" + pinTable;
+                pinTable = "pinball" + File.separator + pinTable;
                   // pinAnimationNameOnly = FilenameUtils.removeExtension(PinAnimationName);
             } else {
                 //Unless we were told not to...
@@ -238,7 +241,7 @@ public class PinballHttpHandler extends ImageResourceHttpHandler {
                 //magic let's get it from the pinball folder...
                 pinTable = "pinball/auto";
                 pinAnimationNameOnly = String.format("s%d",res);
-                arcadeFilePathGIF = pixelHome + "pinball/auto/" + pinAnimationNameOnly + ".gif";
+                arcadeFilePathGIF = pixelHome + "pinball" + File.separator +"auto" + File.separator + pinAnimationNameOnly + ".gif";
                 arcadeFileGIF = new File(arcadeFilePathGIF);
                 System.out.println("Magically: " + pinAnimationNameOnly);
               }
@@ -257,7 +260,10 @@ public class PinballHttpHandler extends ImageResourceHttpHandler {
         
       if (arcadeFileGIF.exists() && !arcadeFileGIF.isDirectory()) {
             handleGIF(pinTable, pinAnimationNameOnly + ".gif", Boolean.valueOf(saveAnimation), loop_);  //either pinball/gif or pinball/table/gif
-      } 
+      }
+      else {
+          System.out.println("[ERROR] Cannot find " + requestedPath);
+      }
       
     } else {
             System.out.println("[ERROR] URL format incorect, use http://localhost:8080/pinball/stream/<Pinball Table/ROM Name>/<Pinball GIF Name>");
@@ -267,3 +273,4 @@ public class PinballHttpHandler extends ImageResourceHttpHandler {
     } 
   }
 }
+

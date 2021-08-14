@@ -74,7 +74,7 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
   public void handlePNGCycle(File PNGFileFullPath, Boolean writeMode, int loop, String consoleNameMapped, String PNGNameWithExtension, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth) {  //per AtGames request, this will loop between a PNG/GIF and Scrolling Text until Q is interrupted
     Pixel pixel = this.application.getPixel();
     try {
-      pixel.ArcadeCyclePNG(PNGFileFullPath,false, loop, consoleNameMapped, PNGNameWithExtension, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard code text loop to 1 as the png loop will be longer like 5s 
+      pixel.ArcadeCyclePNG(PNGFileFullPath,false, 5, consoleNameMapped, PNGNameWithExtension, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard code text loop to 1 as the png loop will be longer like 5s and hard coding PNG to 5 as we aren't going to know if PNG or GIF
     } catch (NoSuchAlgorithmException ex) {
       Logger.getLogger(ArcadeHttpHandler.class.getName()).log(Level.SEVERE, (String)null, ex);
     }
