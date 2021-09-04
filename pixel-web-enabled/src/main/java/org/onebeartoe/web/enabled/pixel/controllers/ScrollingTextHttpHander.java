@@ -84,6 +84,8 @@ public class ScrollingTextHttpHander extends TextHttpHandler  //TO DO have TextH
         URI requestURI = exchange.getRequestURI();
         Font font = null;
         
+        WebEnabledPixel.setTickerRunning(false); //stop the ticker as we have an arcade function
+        
          if (!CliPixel.getSilentMode()) {
              logMe.aLogger.info("Scrolling text handler received a request: " + requestURI);
              System.out.println("Scrolling text handler received a request: " + requestURI);

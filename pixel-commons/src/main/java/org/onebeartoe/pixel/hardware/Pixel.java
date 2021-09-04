@@ -243,11 +243,10 @@ public class Pixel
     private Boolean loop99999FlagGIF = false;
     private Boolean loop99999FlagText = false;
     
-    //private static boolean isALU = System.getenv("PATH").contains("pixelcade/jre11/bin");
-    private static boolean isALU = isPathValid("pixelcade/jre11/bin");
-    
-    //private static boolean isMister = System.getenv("PATH").contains("/media/fat/Scripts");
-    
+    //private static boolean isALU = System.getenv("PATH").contains("pixelcade/jre11/bin"); //old way but was not good as sometimes env variable was not set
+    //private static boolean isALU = isPathValid("pixelcade/jre11/bin"); //this is not valid for ALU
+    //private static boolean isALU = isPathValid("/opt/app_store"); 
+    private static boolean isALU = isPathValid("/emulator/arcadenet_games"); 
     private static boolean isMister = isPathValid("/media/fat/Scripts");  //had to change to this as when adding pixelcade to startup , the environment path is not yet set so the above call will fail
     
     private String lastGIFName = "";

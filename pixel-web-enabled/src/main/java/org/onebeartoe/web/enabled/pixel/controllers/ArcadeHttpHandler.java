@@ -150,6 +150,7 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
     boolean cycle_ = false;
     
     pixelHome = WebEnabledPixel.getHome();
+    WebEnabledPixel.setTickerRunning(false); //this will kill the ticker (if it's running), note it may not kill immeditely though if only loop commands come in, to do here
     
     if (WebEnabledPixel.isWindows())
       scrollsmooth_ = 3; 

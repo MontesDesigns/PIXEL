@@ -7,6 +7,9 @@ import com.fazecast.jSerialComm.SerialPortMessageListener;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import com.sun.syndication.feed.synd.SyndFeed;
+import com.sun.syndication.io.SyndFeedInput;
+import com.sun.syndication.io.XmlReader;
 //import ioio.lib.api.AnalogInput;
 import ioio.lib.api.RgbLedMatrix;
 import ioio.lib.api.exception.ConnectionLostException;
@@ -40,6 +43,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -77,11 +81,18 @@ import org.onebeartoe.web.enabled.pixel.controllers.ShutdownHttpHandler;
 import org.onebeartoe.web.enabled.pixel.controllers.UpdateHttpHandler;
 import org.onebeartoe.web.enabled.pixel.controllers.RebootHttpHandler;
 import org.onebeartoe.web.enabled.pixel.controllers.CurrentGameHttpHandler;
+import org.onebeartoe.web.enabled.pixel.controllers.TickerHttpHandler;
+
+import org.onebeartoe.web.enabled.pixel.controllers.FeedReader;
 
 import xyz.gianlu.zeroconf.*;
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceEvent;
 import javax.jmdns.ServiceListener;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import org.onebeartoe.web.enabled.pixel.controllers.ScrollingTextHttpHandlerBasic;
 import org.onebeartoe.web.enabled.pixel.controllers.lcdfinder;
 
 
@@ -91,7 +102,7 @@ public class WebEnabledPixel  {
     
   public static boolean dxEnvironment = true;
   
-  public static String pixelwebVersion = "3.6.6";
+  public static String pixelwebVersion = "3.7.0";
   
   public static LogMe logMe = null;
   
@@ -161,7 +172,7 @@ public class WebEnabledPixel  {
   
   private static String textColor_ = "random";
   
-  private static Color  color = Color.RED;
+  private static Color color = Color.RED;
   
   private static String textSpeed_ = "normal";
   
@@ -178,6 +189,12 @@ public class WebEnabledPixel  {
   private static int defaultFontSize = 28;
   
   private static int defaultyTextOffset = 0;
+  
+  private static String defaultFontTicker = "Arial Narrow 7";
+  
+  private static int defaultFontSizeTicker = 28;
+  
+  private static int defaultyTextOffsetTicker = 0;
   
   private static int  scrollsmooth_ = 1;
   
@@ -209,7 +226,8 @@ public class WebEnabledPixel  {
   
   //private boolean isALU = System.getenv().containsValue("pixelcade/jre11/bin/java");
   //private static boolean isALU = System.getenv("PATH").contains("pixelcade/jre11/bin");
-  private static boolean isALU = isPathValid("pixelcade/jre11/bin");
+  //private static boolean isALU = isPathValid("pixelcade/jre11/bin"); //this is not valid for ALU
+  private static boolean isALU = isPathValid("/emulator/arcadenet_games");
   
   //private static boolean isMister_ = System.getenv("PATH").contains("/media/fat/Scripts");
   
@@ -278,6 +296,32 @@ public class WebEnabledPixel  {
   private static Integer LCDSearchStartUpDelay_ = 0;
   
   private Pattern pattern = Pattern.compile("-?\\d+(\\.\\d+)?");
+  
+  private static String ticker_ = "no";
+  
+  private static String tickerColor_ = "red";
+  
+  private static Color tickerColor = Color.RED;
+  
+  private static String feed1_ = "https://www.espn.com/espn/rss/news";
+  
+  private static String feed2_ = "https://www.espn.com/espn/rss/nfl/news";
+  
+  private static String feed3_ = "https://www.espn.com/espn/rss/nba/news";
+  
+  private static String feed4_ = "https://www.espn.com/espn/rss/mlb/news";
+  
+  private static String feed5_ = "https://www.espn.com/espn/rss/nhl/news";
+  
+  private  static ArrayList<String> headlinesarray_ = new ArrayList<String>();
+  
+  private FeedReader feedreader = new FeedReader();
+  
+  private static Boolean isTickerRunning = false;
+  
+  private static String alternateTickerColor_ = "no";
+  
+  private static Boolean alternateTickerColor = false;
   
   public WebEnabledPixel(String[] args) throws FileNotFoundException, IOException {
       
@@ -408,6 +452,7 @@ public class WebEnabledPixel  {
         defaultyTextOffset = Integer.parseInt((String)sec.get("yTextOffset"));
       } else {
         sec.add("font", "Arial Narrow 7");
+        sec.add("font_OPTION", "Advanced Pixel-7");
         sec.add("font_OPTION", "Arial Narrow 7");
         sec.add("font_OPTION", "Benegraphic");
         sec.add("font_OPTION", "Candy Stripe (BRK)");
@@ -436,6 +481,8 @@ public class WebEnabledPixel  {
         sec.add("font_OPTION", "Paulistana Deco");
         sec.add("font_OPTION", "Pixelated");
         sec.add("font_OPTION", "Pixeled");
+        sec.add("font_OPTION", "Pixelmix");
+        sec.add("font_OPTION", "Pixels");
         sec.add("font_OPTION", "RetroBoundmini");
         sec.add("font_OPTION", "RM Typerighter medium");
         sec.add("font_OPTION", "Samba Is Dead");
@@ -458,6 +505,7 @@ public class WebEnabledPixel  {
         sec.add("fontSize_OPTION", "30");
         sec.add("fontSize_OPTION", "24");
         sec.add("fontSize_OPTION", "20");
+        sec.add("fontSize_OPTION", "16");
         sec.add("fontSize_OPTION", "18");
         sec.add("fontSize_OPTION", "14");
         sec.add("yTextOffset", "0");
@@ -560,6 +608,272 @@ public class WebEnabledPixel  {
         sec.add("LEDStrip2NumberLEDs", "13");
         sec.add("LEDStrip2DataPin", "4");
         sec.add("LEDStrip2CLKPin", "5");
+        ini.store();
+      } 
+      
+      if (sec.containsKey("Ticker")) {
+        ticker_ = (String)sec.get("Ticker");
+      } else {
+        sec.add("Ticker", "no");
+        sec.add("Ticker_OPTION", "no");
+        sec.add("Ticker_OPTION", "yes");
+        ini.store();
+      } 
+      
+      if (sec.containsKey("TickerColor")) {
+        tickerColor_ = (String)sec.get("TickerColor");
+      } else {
+        sec.add("TickerColor", "random");
+        sec.add("TickerColor_OPTION", "random");
+        sec.add("TickerColor_OPTION", "red");
+        sec.add("TickerColor_OPTION", "blue");
+        sec.add("TickerColor_OPTION", "cyan");
+        sec.add("TickerColor_OPTION", "gray");
+        sec.add("TickerColor_OPTION", "darkgray");
+        sec.add("TickerColor_OPTION", "green");
+        sec.add("TickerColor_OPTION", "lightgray");
+        sec.add("TickerColor_OPTION", "magenta");
+        sec.add("TickerColor_OPTION", "orange");
+        sec.add("TickerColor_OPTION", "pink");
+        sec.add("TickerColor_OPTION", "yellow");
+        sec.add("TickerColor_OPTION", "white");
+        ini.store();
+      } 
+      
+     if (sec.containsKey("AlternateTickerColor")) {
+        alternateTickerColor_ = (String)sec.get("AlternateTickerColor");
+      } else {
+        sec.add("AlternateTickerColor", "no");
+        sec.add("AlternateTickerColor_OPTION", "no");
+        sec.add("AlternateTickerColor_OPTION", "yes");
+        ini.store();
+      } 
+      
+      
+      if (sec.containsKey("TickerFont")) {
+        defaultFontTicker = (String)sec.get("TickerFont");
+        defaultFontSizeTicker = Integer.parseInt((String)sec.get("TickerfontSize"));
+        defaultyTextOffsetTicker = Integer.parseInt((String)sec.get("TickeryTextOffset"));
+      } else {
+        sec.add("TickerFont", "Advanced Pixel-7");
+        sec.add("TickerFont_OPTION", "Advanced Pixel-7");
+        sec.add("TickerFont_OPTION", "Arial Narrow 7");
+        sec.add("TickerFont_OPTION", "Benegraphic");
+        sec.add("TickerFont_OPTION", "Candy Stripe (BRK)");
+        sec.add("TickerFont_OPTION", "Casio FX-702P");
+        sec.add("TickerFont_OPTION", "Chlorinar");
+        sec.add("TickerFont_OPTION", "Daddy Longlegs NF");
+        sec.add("TickerFont_OPTION", "Decoder");
+        sec.add("TickerFont_OPTION", "DIG DUG");
+        sec.add("TickerFont_OPTION", "dotty");
+        sec.add("TickerFont_OPTION", "DPComic");
+        sec.add("TickerFont_OPTION", "Early GameBoy");
+        sec.add("TickerFont_OPTION", "Fiddums Family");
+        sec.add("TickerFont_OPTION", "Ghastly Panic");
+        sec.add("TickerFont_OPTION", "Gnuolane");
+        sec.add("TickerFont_OPTION", "Grapevine");
+        sec.add("TickerFont_OPTION", "Grinched");
+        sec.add("TickerFont_OPTION", "Handwriting");
+        sec.add("TickerFont_OPTION", "Harry P");
+        sec.add("TickerFont_OPTION", "Haunting Attraction");
+        sec.add("TickerFont_OPTION", "Mecha");
+        sec.add("TickerFont_OPTION", "Minimal4");
+        sec.add("TickerFont_OPTION", "Morris Roman");
+        sec.add("TickerFont_OPTION", "MostlyMono");
+        sec.add("TickerFont_OPTION", "Neon 80s");
+        sec.add("TickerFont_OPTION", "Nintendo DS BIOS");
+        sec.add("TickerFont_OPTION", "Not So Stout Deco");
+        sec.add("TickerFont_OPTION", "Paulistana Deco");
+        sec.add("TickerFont_OPTION", "Pixelated");
+        sec.add("TickerFont_OPTION", "Pixeled");
+        sec.add("TickerFont_OPTION", "Pixelmix");
+        sec.add("TickerFont_OPTION", "Pixels");
+        sec.add("TickerFont_OPTION", "RetroBoundmini");
+        sec.add("TickerFont_OPTION", "RM Typerighter medium");
+        sec.add("TickerFont_OPTION", "Samba Is Dead");
+        sec.add("TickerFont_OPTION", "Shlop");
+        sec.add("TickerFont_OPTION", "Space Patrol NF");
+        sec.add("TickerFont_OPTION", "Star Jedi Hollow");
+        sec.add("TickerFont_OPTION", "Star Jedi");
+        sec.add("TickerFont_OPTION", "Still Time");
+        sec.add("TickerFont_OPTION", "Stint Ultra Condensed");
+        sec.add("TickerFont_OPTION", "Tall Films Fine");
+        sec.add("TickerFont_OPTION", "taller");
+        sec.add("TickerFont_OPTION", "techno overload (BRK)");
+        sec.add("TickerFont_OPTION", "TR2N");
+        sec.add("TickerFont_OPTION", "TRON");
+        sec.add("TickerFont_OPTION", "Vectroid");
+        sec.add("TickerFont_OPTION", "Videophreak");
+        sec.add("TickerfontSize", "20");
+        sec.add("TickerfontSize_OPTION", "28");
+        sec.add("TickerfontSize_OPTION", "32");
+        sec.add("TickerfontSize_OPTION", "30");
+        sec.add("TickerfontSize_OPTION", "24");
+        sec.add("TickerfontSize_OPTION", "20");
+        sec.add("TickerfontSize_OPTION", "18");
+        sec.add("TickerfontSize_OPTION", "16");
+        sec.add("TickerfontSize_OPTION", "14");
+        sec.add("TickeryTextOffset", "0");
+        ini.store();
+      } 
+      
+       if (sec.containsKey("TickerFeed1")) {
+        feed1_ = (String)sec.get("TickerFeed1");
+      } else {
+        sec.add("TickerFeed1", "https://www.espn.com/espn/rss/news");
+        sec.add("TickerFeed1_OPTION", "https://www.espn.com/espn/rss/news");
+        sec.add("TickerFeed1_OPTION", "https://www.skysports.com/rss/12040");
+        sec.add("TickerFeed1_OPTION", "http://www.sportingnews.com/us/rss");
+        sec.add("TickerFeed1_OPTION", "https://www.espn.com/espn/rss/nfl/news");
+        sec.add("TickerFeed1_OPTION", "https://www.espn.com/espn/rss/nba/news");
+        sec.add("TickerFeed1_OPTION", "https://www.espn.com/espn/rss/mlb/news");
+        sec.add("TickerFeed1_OPTION", "https://www.espn.com/espn/rss/nhl/news");
+        sec.add("TickerFeed1_OPTION", "https://www.espn.com/espn/rss/soccer/news");
+        sec.add("TickerFeed1_OPTION", "http://rss.cnn.com/rss/cnn_topstories.rss");
+        sec.add("TickerFeed1_OPTION", "http://rss.cnn.com/rss/cnn_world.rss");
+        sec.add("TickerFeed1_OPTION", "http://rss.cnn.com/rss/cnn_us.rss");
+        sec.add("TickerFeed1_OPTION", "http://rss.cnn.com/rss/cnn_latest.rss");
+        sec.add("TickerFeed1_OPTION", "http://feeds.foxnews.com/foxnews/latest");
+        sec.add("TickerFeed1_OPTION", "http://feeds.foxnews.com/foxnews/world");
+        sec.add("TickerFeed1_OPTION", "http://feeds.mashable.com/mashable");
+        sec.add("TickerFeed1_OPTION", "http://feeds.ign.com/ign/games-all");
+        sec.add("TickerFeed1_OPTION", "http://rss.slashdot.org/Slashdot/slashdotMain");
+        sec.add("TickerFeed1_OPTION", "https://arcadeblogger.com/feed/");
+        sec.add("TickerFeed1_OPTION", "https://www.mlb.com/giants/feeds/news/rss.xml");
+        sec.add("TickerFeed1_OPTION", "http://feeds.marketwatch.com/marketwatch/realtimeheadlines/");
+        sec.add("TickerFeed1_OPTION", "http://feeds.marketwatch.com/marketwatch/bulletins");
+        sec.add("TickerFeed1_OPTION", "http://feeds.marketwatch.com/marketwatch/marketpulse/");
+        sec.add("TickerFeed1_OPTION", "https://www.buzzfeed.com/index.xml");
+        sec.add("TickerFeed1_OPTION", "https://https://www.buzzfeed.com/nifty.xml");
+        sec.add("TickerFeed1_OPTION", "none");
+        ini.store();
+      } 
+       
+      if (sec.containsKey("TickerFeed2")) {
+        feed2_ = (String)sec.get("TickerFeed2");
+      } else {
+        sec.add("TickerFeed2", "https://www.espn.com/espn/rss/nfl/news");
+        sec.add("TickerFeed2_OPTION", "https://www.espn.com/espn/rss/news");
+        sec.add("TickerFeed2_OPTION", "https://www.skysports.com/rss/12040");
+        sec.add("TickerFeed2_OPTION", "http://www.sportingnews.com/us/rss");
+        sec.add("TickerFeed2_OPTION", "https://www.espn.com/espn/rss/nfl/news");
+        sec.add("TickerFeed2_OPTION", "https://www.espn.com/espn/rss/nba/news");
+        sec.add("TickerFeed2_OPTION", "https://www.espn.com/espn/rss/mlb/news");
+        sec.add("TickerFeed2_OPTION", "https://www.espn.com/espn/rss/nhl/news");
+        sec.add("TickerFeed2_OPTION", "https://www.espn.com/espn/rss/soccer/news");
+        sec.add("TickerFeed2_OPTION", "http://rss.cnn.com/rss/cnn_topstories.rss");
+        sec.add("TickerFeed2_OPTION", "http://rss.cnn.com/rss/cnn_world.rss");
+        sec.add("TickerFeed2_OPTION", "http://rss.cnn.com/rss/cnn_us.rss");
+        sec.add("TickerFeed2_OPTION", "http://rss.cnn.com/rss/cnn_latest.rss");
+        sec.add("TickerFeed2_OPTION", "http://feeds.foxnews.com/foxnews/latest");
+        sec.add("TickerFeed2_OPTION", "http://feeds.foxnews.com/foxnews/world");
+        sec.add("TickerFeed2_OPTION", "http://feeds.mashable.com/mashable");
+        sec.add("TickerFeed2_OPTION", "http://feeds.ign.com/ign/games-all");
+        sec.add("TickerFeed2_OPTION", "http://rss.slashdot.org/Slashdot/slashdotMain");
+        sec.add("TickerFeed2_OPTION", "https://arcadeblogger.com/feed/");
+        sec.add("TickerFeed2_OPTION", "https://www.mlb.com/giants/feeds/news/rss.xml");
+        sec.add("TickerFeed2_OPTION", "http://feeds.marketwatch.com/marketwatch/realtimeheadlines/");
+        sec.add("TickerFeed2_OPTION", "http://feeds.marketwatch.com/marketwatch/bulletins");
+        sec.add("TickerFeed2_OPTION", "http://feeds.marketwatch.com/marketwatch/marketpulse/");
+        sec.add("TickerFeed2_OPTION", "https://www.buzzfeed.com/index.xml");
+        sec.add("TickerFeed2_OPTION", "https://https://www.buzzfeed.com/nifty.xml");
+        sec.add("TickerFeed2_OPTION", "none");
+        ini.store();
+      } 
+      
+      if (sec.containsKey("TickerFeed3")) {
+        feed3_ = (String)sec.get("TickerFeed3");
+      } else {
+        sec.add("TickerFeed3", "https://www.espn.com/espn/rss/nba/news");
+        sec.add("TickerFeed3_OPTION", "https://www.espn.com/espn/rss/news");
+        sec.add("TickerFeed3_OPTION", "https://www.skysports.com/rss/12040");
+        sec.add("TickerFeed3_OPTION", "http://www.sportingnews.com/us/rss");
+        sec.add("TickerFeed3_OPTION", "https://www.espn.com/espn/rss/nfl/news");
+        sec.add("TickerFeed3_OPTION", "https://www.espn.com/espn/rss/nba/news");
+        sec.add("TickerFeed3_OPTION", "https://www.espn.com/espn/rss/mlb/news");
+        sec.add("TickerFeed3_OPTION", "https://www.espn.com/espn/rss/nhl/news");
+        sec.add("TickerFeed3_OPTION", "https://www.espn.com/espn/rss/soccer/news");
+        sec.add("TickerFeed3_OPTION", "http://rss.cnn.com/rss/cnn_topstories.rss");
+        sec.add("TickerFeed3_OPTION", "http://rss.cnn.com/rss/cnn_world.rss");
+        sec.add("TickerFeed3_OPTION", "http://rss.cnn.com/rss/cnn_us.rss");
+        sec.add("TickerFeed3_OPTION", "http://rss.cnn.com/rss/cnn_latest.rss");
+        sec.add("TickerFeed3_OPTION", "http://feeds.foxnews.com/foxnews/latest");
+        sec.add("TickerFeed3_OPTION", "http://feeds.foxnews.com/foxnews/world");
+        sec.add("TickerFeed3_OPTION", "http://feeds.mashable.com/mashable");
+        sec.add("TickerFeed3_OPTION", "http://feeds.ign.com/ign/games-all");
+        sec.add("TickerFeed3_OPTION", "http://rss.slashdot.org/Slashdot/slashdotMain");
+        sec.add("TickerFeed3_OPTION", "https://arcadeblogger.com/feed/");
+        sec.add("TickerFeed3_OPTION", "https://www.mlb.com/giants/feeds/news/rss.xml");
+        sec.add("TickerFeed3_OPTION", "http://feeds.marketwatch.com/marketwatch/realtimeheadlines/");
+        sec.add("TickerFeed3_OPTION", "http://feeds.marketwatch.com/marketwatch/bulletins");
+        sec.add("TickerFeed3_OPTION", "http://feeds.marketwatch.com/marketwatch/marketpulse/");
+        sec.add("TickerFeed3_OPTION", "https://www.buzzfeed.com/index.xml");
+        sec.add("TickerFeed3_OPTION", "https://https://www.buzzfeed.com/nifty.xml");
+        sec.add("TickerFeed3_OPTION", "none");
+        ini.store();
+      } 
+      
+      if (sec.containsKey("TickerFeed4")) {
+        feed4_ = (String)sec.get("TickerFeed4");
+      } else {
+        sec.add("TickerFeed4", "https://www.espn.com/espn/rss/mlb/news");
+        sec.add("TickerFeed4_OPTION", "https://www.espn.com/espn/rss/news");
+        sec.add("TickerFeed4_OPTION", "https://www.skysports.com/rss/12040");
+        sec.add("TickerFeed4_OPTION", "http://www.sportingnews.com/us/rss");
+        sec.add("TickerFeed4_OPTION", "https://www.espn.com/espn/rss/nfl/news");
+        sec.add("TickerFeed4_OPTION", "https://www.espn.com/espn/rss/nba/news");
+        sec.add("TickerFeed4_OPTION", "https://www.espn.com/espn/rss/mlb/news");
+        sec.add("TickerFeed4_OPTION", "https://www.espn.com/espn/rss/nhl/news");
+        sec.add("TickerFeed4_OPTION", "https://www.espn.com/espn/rss/soccer/news");
+        sec.add("TickerFeed4_OPTION", "http://rss.cnn.com/rss/cnn_topstories.rss");
+        sec.add("TickerFeed4_OPTION", "http://rss.cnn.com/rss/cnn_world.rss");
+        sec.add("TickerFeed4_OPTION", "http://rss.cnn.com/rss/cnn_us.rss");
+        sec.add("TickerFeed4_OPTION", "http://rss.cnn.com/rss/cnn_latest.rss");
+        sec.add("TickerFeed4_OPTION", "http://feeds.foxnews.com/foxnews/latest");
+        sec.add("TickerFeed4_OPTION", "http://feeds.foxnews.com/foxnews/world");
+        sec.add("TickerFeed4_OPTION", "http://feeds.mashable.com/mashable");
+        sec.add("TickerFeed4_OPTION", "http://feeds.ign.com/ign/games-all");
+        sec.add("TickerFeed4_OPTION", "http://rss.slashdot.org/Slashdot/slashdotMain");
+        sec.add("TickerFeed4_OPTION", "https://arcadeblogger.com/feed/");
+        sec.add("TickerFeed4_OPTION", "https://www.mlb.com/giants/feeds/news/rss.xml");
+        sec.add("TickerFeed4_OPTION", "http://feeds.marketwatch.com/marketwatch/realtimeheadlines/");
+        sec.add("TickerFeed4_OPTION", "http://feeds.marketwatch.com/marketwatch/bulletins");
+        sec.add("TickerFeed4_OPTION", "http://feeds.marketwatch.com/marketwatch/marketpulse/");
+        sec.add("TickerFeed4_OPTION", "https://www.buzzfeed.com/index.xml");
+        sec.add("TickerFeed4_OPTION", "https://https://www.buzzfeed.com/nifty.xml");
+        sec.add("TickerFeed4_OPTION", "none");
+        ini.store();
+      } 
+      
+      if (sec.containsKey("TickerFeed5")) {
+        feed5_ = (String)sec.get("TickerFeed5");
+      } else {
+        sec.add("TickerFeed5", "http://rss.cnn.com/rss/cnn_topstories.rss");
+        sec.add("TickerFeed5_OPTION", "https://www.espn.com/espn/rss/news");
+        sec.add("TickerFeed5_OPTION", "https://www.skysports.com/rss/12040");
+        sec.add("TickerFeed5_OPTION", "http://www.sportingnews.com/us/rss");
+        sec.add("TickerFeed5_OPTION", "https://www.espn.com/espn/rss/nfl/news");
+        sec.add("TickerFeed5_OPTION", "https://www.espn.com/espn/rss/nba/news");
+        sec.add("TickerFeed5_OPTION", "https://www.espn.com/espn/rss/mlb/news");
+        sec.add("TickerFeed5_OPTION", "https://www.espn.com/espn/rss/nhl/news");
+        sec.add("TickerFeed5_OPTION", "https://www.espn.com/espn/rss/soccer/news");
+        sec.add("TickerFeed5_OPTION", "http://rss.cnn.com/rss/cnn_topstories.rss");
+        sec.add("TickerFeed5_OPTION", "http://rss.cnn.com/rss/cnn_world.rss");
+        sec.add("TickerFeed5_OPTION", "http://rss.cnn.com/rss/cnn_us.rss");
+        sec.add("TickerFeed5_OPTION", "http://rss.cnn.com/rss/cnn_latest.rss");
+        sec.add("TickerFeed5_OPTION", "http://feeds.foxnews.com/foxnews/latest");
+        sec.add("TickerFeed5_OPTION", "http://feeds.foxnews.com/foxnews/world");
+        sec.add("TickerFeed5_OPTION", "http://feeds.mashable.com/mashable");
+        sec.add("TickerFeed5_OPTION", "http://feeds.ign.com/ign/games-all");
+        sec.add("TickerFeed5_OPTION", "http://rss.slashdot.org/Slashdot/slashdotMain");
+        sec.add("TickerFeed5_OPTION", "https://arcadeblogger.com/feed/");
+        sec.add("TickerFeed5_OPTION", "https://www.mlb.com/giants/feeds/news/rss.xml");
+        sec.add("TickerFeed5_OPTION", "http://feeds.marketwatch.com/marketwatch/realtimeheadlines/");
+        sec.add("TickerFeed5_OPTION", "http://feeds.marketwatch.com/marketwatch/bulletins");
+        sec.add("TickerFeed5_OPTION", "http://feeds.marketwatch.com/marketwatch/marketpulse/");
+        sec.add("TickerFeed5_OPTION", "https://www.buzzfeed.com/index.xml");
+        sec.add("TickerFeed5_OPTION", "https://https://www.buzzfeed.com/nifty.xml");
+        sec.add("TickerFeed5_OPTION", "none");
         ini.store();
       } 
       
@@ -833,6 +1147,8 @@ public class WebEnabledPixel  {
       } 
     } 
     
+    
+    
     //this is a shutdown listener that we'll want to use if we have LCD to do a graceful shutdown when the JVM is terminated
     
 //    if (lcdMarquee_.equals("yes")) {
@@ -982,6 +1298,8 @@ public boolean isNumeric(String strNum) {
             HttpHandler rebootHttpHandler = new RebootHttpHandler(this);
             
             HttpHandler currentGameHttpHandler = new CurrentGameHttpHandler();
+            
+            HttpHandler tickerHttpHandler = new TickerHttpHandler(this);
           
             
             // ARE WE GONNA DO ANYTHING WITH THE HttpContext OBJECTS?   
@@ -1003,6 +1321,7 @@ public boolean isNumeric(String strNum) {
                                             server.createContext("/arcade/list", arcadeListHttpHandler);
                                             server.createContext("/console", consoleListHttpHandler);
                                             server.createContext("/localplayback",localModeHttpHandler);
+                                            server.createContext("/ticker",tickerHttpHandler);
             
             HttpContext pindmdContext =     server.createContext("/dmd", pindmdHttpHandler);
 
@@ -1202,6 +1521,23 @@ public static boolean validIP (String ip) {
   public static int getDefaultyTextOffset() {
     return defaultyTextOffset;
   }
+  
+  public static Boolean getIsTickerRunning() {
+      return isTickerRunning;
+  }
+  
+  public static void setTickerRunning(Boolean tickerCommandPassed) {
+      isTickerRunning = tickerCommandPassed;
+  }
+  
+  public static Boolean TickerEnabled() {
+      if (ticker_.equals("yes"))
+          return true;
+      else 
+          return false;
+  }
+  
+  
   
   public static Boolean getLCDLEDCompliment() {
      Boolean LCDLEDComplimentBool_;
@@ -1885,6 +2221,119 @@ public static boolean validIP (String ip) {
     return consoleNameMapped;
   }
   
+  public static void startTicker() {
+       //  ************ text house keeping one time let's take care of 
+                if (tickerColor_ != null) {
+                    if (tickerColor_.equals("random")) 
+                        tickerColor = getRandomColor(); 
+                    else 
+                        tickerColor = getColorFromHexOrName(tickerColor_);
+                } 
+                else {
+                        tickerColor = Color.red;
+                } 
+                
+                String scrollSpeedSettings = WebEnabledPixel.getTextScrollSpeed();
+                scrollsmooth_ = WebEnabledPixel.getScrollingSmoothSpeed(scrollSpeedSettings);
+                
+                int LED_MATRIX_ID = getMatrixID();
+                speed = Long.valueOf(getScrollingTextSpeed(LED_MATRIX_ID));
+                
+                if (defaultFontTicker  == null)
+                    defaultFontTicker  = getDefaultFont(); 
+
+                Pixel.setFontFamily(defaultFontTicker);
+
+                if (defaultyTextOffsetTicker == 0)
+                    defaultyTextOffsetTicker = getDefaultyTextOffset(); 
+
+                Pixel.setYOffset(defaultyTextOffsetTicker);
+
+                if (defaultFontSizeTicker == 0)
+                    defaultFontSizeTicker = getDefaultFontSize(); 
+
+                Pixel.setFontSize(defaultFontSizeTicker);
+                 
+                
+                if (alternateTickerColor_.equals("yes")) {
+                    alternateTickerColor = true;
+                }
+                // ********** end text house keeping ************************
+            
+                while (isTickerRunning == true) {   
+                    
+                    if (!feed1_.equals("none") && isTickerRunning == true)
+                        runTicker(feed1_);
+                    if (!feed2_.equals("none") && isTickerRunning == true)
+                        runTicker(feed2_);
+                    if (!feed3_.equals("none") && isTickerRunning == true)
+                        runTicker(feed3_);
+                    if (!feed4_.equals("none") && isTickerRunning == true)
+                        runTicker(feed4_);
+                    if (!feed5_.equals("none") && isTickerRunning == true)
+                        runTicker(feed5_);
+                }
+            
+  }
+  
+   public static boolean isValidRSS(String address) {
+                    boolean ok = false;
+                    try{
+                        URL url = new URL(address);
+                        HttpURLConnection httpcon = (HttpURLConnection)url.openConnection();
+                        SyndFeedInput input = new SyndFeedInput();
+                        SyndFeed feed = input.build(new XmlReader(url));
+                        ok = true;
+                    } catch (Exception exc){
+                        exc.printStackTrace();
+                    }
+                    return ok;
+                }
+               
+    public static void runTicker(String tickerRSS) {
+                
+                //we need to make sure the RSS feed is valid
+                // to do don't send to LCD from here as LCD has no Q for scrolling text
+                // but look into sending ticker text from the Q itself to LCD as that will be timed as could then run on Pixelcade Dot
+                System.out.println("[TICKER] " + tickerRSS);
+                if (isValidRSS(tickerRSS)) {
+                    headlinesarray_ = (ArrayList<String>) FeedReader.getTitlesArray(tickerRSS);
+
+                    for (int i = 0; i < headlinesarray_.size(); i++) {
+                        //System.out.println(headlinesarray_.get(i));
+                        
+                        if (!isTickerRunning) {
+                            break;
+                        }
+                        
+                        if (alternateTickerColor == true) {  //by default this is off but if on, we can alternate color for each headline
+                            if (tickerColor_ != null) {
+                                if (tickerColor_.equals("random")) 
+                                    tickerColor = getRandomColor(); 
+                                else 
+                                    tickerColor = getColorFromHexOrName(tickerColor_);
+                            } 
+                            else {
+                                    tickerColor = Color.red;
+                            } 
+                        }
+                        
+                        pixel.scrollText(headlinesarray_.get(i), 1, speed, tickerColor, WebEnabledPixel.pixelConnected, scrollsmooth_);  //add to the scrolling text Q //scrollText(text_, loop, speed, color,WebEnabledPixel.pixelConnected,scrollsmooth_);
+                        // note that since we are calling this direct from the pixel class, the LCD re-direct does not happen which is ok for now
+                        //need to add a delay here, otherwise the Q will fill up too fast, 10 second delay should work as a typical headline is 15s
+                        try {
+                            TimeUnit.SECONDS.sleep(10);
+                        } catch (InterruptedException ex) {
+                            Logger.getLogger(WebEnabledPixel.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+                else {
+                    System.out.println("[ERROR] " + tickerRSS + " is not a valid URL or available");
+                    LogMe.aLogger.info("[ERROR] " + tickerRSS + " is not a valid URL or available");
+                }
+               }
+  
   @Deprecated
   private class PixelIntegration extends IOIOConsoleApp {
     public PixelIntegration() {
@@ -2072,6 +2521,13 @@ public static boolean validIP (String ip) {
                 }
             }
             
+           
+            if (ticker_.equals("yes")) {  //only run ticker on startup if enabled but can also be run from API too
+                isTickerRunning = true;
+                startTicker();
+            }
+
+            
             //to do later possibly, easter egg holiday animations could go here 
             
 //            Date date = new Date();
@@ -2149,8 +2605,66 @@ public static boolean validIP (String ip) {
 //		}
           
             
+//               public boolean isValidRSS(String address) {
+//                    boolean ok = false;
+//                    try{
+//                        URL url = new URL(address);
+//                        HttpURLConnection httpcon = (HttpURLConnection)url.openConnection();
+//                        SyndFeedInput input = new SyndFeedInput();
+//                        SyndFeed feed = input.build(new XmlReader(url));
+//                        ok = true;
+//                    } catch (Exception exc){
+//                        exc.printStackTrace();
+//                    }
+//                    return ok;
+//                }
+//               
+//               public void runTicker(String tickerRSS) {
+//                
+//                //we need to make sure the RSS feed is valid
+//                // to do don't send to LCD from here as LCD has no Q for scrolling text
+//                // but look into sending ticker text from the Q itself to LCD as that will be timed as could then run on Pixelcade Dot
+//                
+//                if (isValidRSS(tickerRSS)) {
+//                    headlinesarray_ = (ArrayList<String>) feedreader.getTitlesArray(tickerRSS);
+//
+//                    for (int i = 0; i < headlinesarray_.size(); i++) {
+//                        //System.out.println(headlinesarray_.get(i));
+//                        
+//                        if (!tickerRunning) {
+//                            break;
+//                        }
+//                        
+//                        if (alternateTickerColor == true) {  //by default this is off but if on, we can alternate color for each headline
+//                            if (tickerColor_ != null) {
+//                                if (tickerColor_.equals("random")) 
+//                                    tickerColor = getRandomColor(); 
+//                                else 
+//                                    tickerColor = getColorFromHexOrName(tickerColor_);
+//                            } 
+//                            else {
+//                                    tickerColor = Color.red;
+//                            } 
+//                        }
+//                        
+//                        pixel.scrollText(headlinesarray_.get(i), 1, speed, tickerColor, WebEnabledPixel.pixelConnected, scrollsmooth_);  //add to the scrolling text Q //scrollText(text_, loop, speed, color,WebEnabledPixel.pixelConnected,scrollsmooth_);
+//                        // note that since we are calling this direct from the pixel class, the LCD re-direct does not happen which is ok for now
+//                        //need to add a delay here, otherwise the Q will fill up too fast, 10 second delay should work as a typical headline is 15s
+//                        try {
+//                            TimeUnit.SECONDS.sleep(10);
+//                        } catch (InterruptedException ex) {
+//                            Logger.getLogger(WebEnabledPixel.class.getName()).log(Level.SEVERE, null, ex);
+//                        }
+//                    }
+//                }
+//                else {
+//                    System.out.println("[ERROR] " + tickerRSS + " is not a valid URL or available");
+//                    LogMe.aLogger.info("[ERROR] " + tickerRSS + " is not a valid URL or available");
+//                }
+//               }
                 
-                public void setColor(RGB rgb, byte r, byte g, byte b) {  //blue and green are switched, not sure but that may be strip dependent, may need to make this configurable
+          
+               public void setColor(RGB rgb, byte r, byte g, byte b) {  //blue and green are switched, not sure but that may be strip dependent, may need to make this configurable
 				rgb.r = r;  
 				rgb.g = b; 
 				rgb.b = g;  
