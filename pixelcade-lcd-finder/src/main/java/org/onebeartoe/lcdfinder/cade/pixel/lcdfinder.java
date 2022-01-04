@@ -288,7 +288,8 @@ public class lcdfinder implements ServiceListener {
                                System.out.println("[PAIRED] " + PairedPixelcades.get(i) + " paired with result: " + pairingAPIResult_); 
                                
                                try {
-                                    host = InetAddress.getByName(UnpairedPixelcades.get(0));
+                                    //host = InetAddress.getByName(UnpairedPixelcades.get(0)); //this is crashing
+                                    host = InetAddress.getByName(PairedPixelcades.get(i)); //this is crashing
                                     System.out.println(host.getHostAddress());
                                     } catch (UnknownHostException ex) {
                                         ex.printStackTrace();
