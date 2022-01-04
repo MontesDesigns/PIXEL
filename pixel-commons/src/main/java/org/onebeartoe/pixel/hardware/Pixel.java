@@ -248,6 +248,7 @@ public class Pixel
     //private static boolean isALU = isPathValid("/opt/app_store"); 
     private static boolean isALU = isPathValid("/emulator/arcadenet_games"); 
     private static boolean isMister = isPathValid("/media/fat/Scripts");  //had to change to this as when adding pixelcade to startup , the environment path is not yet set so the above call will fail
+    private static boolean isEmuelec_ = isPathValid("/emuelec");
     
     private String lastGIFName = "";
     private ArrayList<String> GIFPlayed = new ArrayList<>();
@@ -327,6 +328,10 @@ public class Pixel
           else if (isMister) {
             pixelHome = "/media/fat/pixelcade/";
         }
+          else if (isEmuelec_) {
+          pixelHome = "/storage/roms/pixelcade/";
+        }
+        
         
         animationsPath = pixelHome + "animations" + File.separator;            
         decodedAnimationsPath = animationsPath + "decoded" + File.separator;

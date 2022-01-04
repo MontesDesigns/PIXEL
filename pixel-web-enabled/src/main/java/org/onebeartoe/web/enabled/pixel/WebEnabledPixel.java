@@ -102,7 +102,7 @@ public class WebEnabledPixel  {
     
   public static boolean dxEnvironment = true;
   
-  public static String pixelwebVersion = "3.7.0";
+  public static String pixelwebVersion = "4.3.3";
   
   public static LogMe logMe = null;
   
@@ -233,6 +233,8 @@ public class WebEnabledPixel  {
   
   private static boolean isMister_ = isPathValid("/media/fat/Scripts");  //had to change to this as when adding pixelcade to startup , the environment path is not yet set so the above call will fail
   
+  private static boolean isEmuelec_ = isPathValid("/emuelec");  //had to change to this as when adding pixelcade to startup , the environment path is not yet set so the above call will fail
+  
   //for LED Strip
   
   public RGB[] frame_ = null;
@@ -323,6 +325,10 @@ public class WebEnabledPixel  {
   
   private static Boolean alternateTickerColor = false;
   
+  private static String startupLEDMarquee_ = "no";
+  
+  private static String startupLEDMarqueeName_ = "arcade";
+  
   public WebEnabledPixel(String[] args) throws FileNotFoundException, IOException {
       
     this.cli = new CliPixel(args);
@@ -361,6 +367,10 @@ public class WebEnabledPixel  {
             System.out.println("MiSTer Detected");
             pixelHome = "/media/fat/pixelcade/";
     }
+      else if (isEmuelec_) {
+            System.out.println("Emuelec Detected");
+            pixelHome = "/storage/roms/pixelcade/";
+      }
     
     File file = new File("settings.ini");
     if (file.exists() && !file.isDirectory()) {
@@ -512,6 +522,21 @@ public class WebEnabledPixel  {
         ini.store();
       } 
       
+      if (sec.containsKey("startupLEDMarquee")) {
+        startupLEDMarquee_ = (String)sec.get("startupLEDMarquee");
+      } else {
+        sec.add("startupLEDMarquee", "no");
+        sec.add("startupLEDMarquee_OPTION", "no");
+        sec.add("startupLEDMarquee_OPTION", "yes");
+        ini.store();
+      } 
+      
+      if (sec.containsKey("startupLEDMarqueeName")) {
+        startupLEDMarqueeName_ = (String)sec.get("startupLEDMarqueeName");
+      } else {
+        sec.add("startupLEDMarqueeName", "arcade");
+        ini.store();
+      } 
       
       if (sec.containsKey("LCDSearchStartUpDelay")) {
         
@@ -1799,6 +1824,10 @@ public static boolean validIP (String ip) {
     return (OS.indexOf("nix") >= 0 || OS.indexOf("nux") >= 0 || OS.indexOf("aix") > 0);
   }
   
+  public static boolean isEmuELEC() {
+      return isEmuelec_; 
+  }
+  
   public static void setLocalMode() {
     pixel.playLocalMode();
   }
@@ -2454,7 +2483,19 @@ public static boolean validIP (String ip) {
             if (!WebEnabledPixel.silentMode_) {
               System.out.println(message);
               LogMe.aLogger.info(message.toString());
-            } 
+            }
+            
+            //if it's on , we can show a default marquee on pixelcade connect startup
+            if (startupLEDMarquee_.equals("yes")) {
+                File arcadeFilePNG = new File(pixelHome + "mame" + "/" + startupLEDMarqueeName_ + ".png");
+                if (arcadeFilePNG.exists() && !arcadeFilePNG.isDirectory()) {
+                    try {
+                        pixel.writeArcadeImage(arcadeFilePNG, false, 99999, "mame",startupLEDMarqueeName_ + ".png" ,WebEnabledPixel.pixelConnected);
+                    } catch (IOException ex) {
+                        Logger.getLogger(WebEnabledPixel.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
             
             if (isALU) {
             

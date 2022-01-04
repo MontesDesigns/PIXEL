@@ -526,6 +526,14 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
         //TO DO need to handle PNG without (
        
         if (arcadeFilePNG.exists() && !arcadeFilePNG.isDirectory() && arcadeFileGIF.exists() && !arcadeFileGIF.isDirectory()) {  //if there is both a png and a gif, we'll play gif and then png
+            
+             if (WebEnabledPixel.isUnix() && !WebEnabledPixel.isEmuELEC()) { //this is a quick hack and breaks the Q on Pi but on EmuELEC we can add the extra scroll event params so let's not do the hack there
+                        handlePNG(arcadeFilePNG, Boolean.valueOf(false), 0, "black", "nodata");
+                        handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), 1); //send the gif with a loop
+                        handlePNG(arcadeFilePNG, Boolean.valueOf(saveAnimation), 99999, consoleNameMapped, arcadeNameOnlyPNG + ".png");
+             }
+             else {
+
             //original code which wasn't working with the Q and high scores for example
             //handlePNG(arcadeFilePNG, Boolean.valueOf(false), 0, "black", "nodata");
             //handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), loop_); 
@@ -561,6 +569,7 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
                  handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), loop_); //send the gif with a loop
                  handlePNG(arcadeFilePNG, Boolean.valueOf(saveAnimation), 99999, consoleNameMapped, arcadeNameOnlyPNG + ".png"); //send the PNG with 99999 so stays on the PNG, changed to arcadeNameOnlyPNG as the GIF can now be different with the animation versions
             }
+           }
 
             //to do known issue here in that if scrolling through front end and one with gif and png are selected back to back, the second one won't interrupt and must complete before the next
         
