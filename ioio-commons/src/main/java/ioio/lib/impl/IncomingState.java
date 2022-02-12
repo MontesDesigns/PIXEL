@@ -32,6 +32,7 @@ import ioio.lib.api.exception.ConnectionLostException;
 import ioio.lib.impl.Board.Hardware;
 import ioio.lib.impl.IOIOProtocol.IncomingHandler;
 import ioio.lib.spi.Log;
+import ioio.lib.impl.IOIOImpl;
 
 import java.util.HashSet;
 import java.util.List;
@@ -41,6 +42,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 class IncomingState implements IncomingHandler {
 	private static final String TAG = "IncomingState";
+        private static boolean silentMode_ = false;
+        
 
 	enum ConnectionState {
 		INIT, ESTABLISHED, CONNECTED, DISCONNECTED, UNSUPPORTED_IID
@@ -332,14 +335,16 @@ class IncomingState implements IncomingHandler {
 		hardwareId_ = new String(hardwareId);
 		bootloaderId_ = new String(bootloaderId);
 		firmwareId_ = new String(firmwareId);
+                
+                silentMode_ = IOIOImpl.getSilentMode();
 
-		Log.i(TAG, "IOIO Connection established. Hardware ID: "
+		if (!silentMode_) Log.i(TAG, "IOIO Connection established. Hardware ID: "
 				+ hardwareId_ + " Bootloader ID: " + bootloaderId_
 				+ " Firmware ID: " + firmwareId_);
 		try {
 			board_ = Board.valueOf(hardwareId_);
 		} catch (IllegalArgumentException e) {
-			Log.e(TAG, "Unknown board: " + hardwareId_);
+			if (!silentMode_) Log.e(TAG, "Unknown board: " + hardwareId_);
 		}
 		if (board_ != null) {
 			final Hardware hw = board_.hardware;

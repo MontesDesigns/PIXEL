@@ -1,3 +1,4 @@
+//LED
 /*
  * Copyright 2011 Ytai Ben-Tsvi. All rights reserved.
  *
@@ -78,11 +79,20 @@ public class IOIOImpl implements IOIO, DisconnectListener {
 	IOIOProtocol protocol_;
 	private State state_ = State.INIT;
 	private Board.Hardware hardware_;
+        private static boolean silentMode_ = false;
         //public static LogMe logMe = null;
 
 	public IOIOImpl(IOIOConnection con) {
 		connection_ = con;
 	}
+        
+        public static void setSilentMode (boolean silentMode) {
+            silentMode_ = silentMode;
+        }
+    
+        public static boolean getSilentMode () {
+            return silentMode_;
+        }
 
 	@Override
 	public void waitForConnect() throws ConnectionLostException,
@@ -96,12 +106,13 @@ public class IOIOImpl implements IOIO, DisconnectListener {
 		if (state_ == State.DEAD) {
 			throw new ConnectionLostException();
 		}
+                
 		addDisconnectListener(this);
-		Log.d(TAG, "Waiting for connection to Pixelcade LED hardware");
+		if (!silentMode_) Log.d(TAG, "Waiting for connection to Pixelcade LED hardware");
                 //logMe.aLogger.info("Waiting for PIXEL connection");
 		try {
 			try {
-				Log.v(TAG, "Waiting for underlying connection");
+				if (!silentMode_) Log.v(TAG, "Waiting for underlying connection");
                                 //logMe.aLogger.info("Waiting for underlying connection");
 				connection_.waitForConnect();
 				synchronized (this) {
@@ -117,34 +128,36 @@ public class IOIOImpl implements IOIO, DisconnectListener {
 				incomingState_.handleConnectionLost();
 				throw e;
 			}
-			Log.v(TAG, "Waiting for handshake");
+			if (!silentMode_) Log.v(TAG, "Waiting for handshake");
                         //logMe.aLogger.info("Waiting for handshake");
 			incomingState_.waitConnectionEstablished();
 			initBoard();
-			Log.v(TAG, "Querying for required interface ID");
+			if (!silentMode_) Log.v(TAG, "Querying for required interface ID");
                         //logMe.aLogger.info("Querying for required interface ID");
 			checkInterfaceVersion();
-			Log.v(TAG, "Required interface ID is supported");
+			if (!silentMode_) Log.v(TAG, "Required interface ID is supported");
                         //logMe.aLogger.info("Required interface ID is supported");
 			state_ = State.CONNECTED;
-			Log.i(TAG, "PIXEL connection established");
+			if (!silentMode_) Log.i(TAG, "PIXEL connection established");
                         //logMe.aLogger.info("PIXEL connection established");
 		} catch (ConnectionLostException e) {
-			Log.d(TAG, "Connection lost / aborted");
+			if (!silentMode_) Log.d(TAG, "Connection lost / aborted");
                         //logMe.aLogger.info("Connection lost / aborted");
 			state_ = State.DEAD;
 			throw e;
 		} catch (IncompatibilityException e) {
 			throw e;
 		} catch (InterruptedException e) {
-			Log.e(TAG, "Unexpected exception", e);
+			if (!silentMode_) Log.e(TAG, "Unexpected exception", e);
                         //logMe.aLogger.log(Level.SEVERE, "Connection lost / aborted", e);
 		}
 	}
 
-	@Override
+	
+        
+        @Override
 	public synchronized void disconnect() {
-		Log.d(TAG, "Client requested disconnect.");
+		if (!silentMode_) Log.d(TAG, "Client requested disconnect.");
                 //logMe.aLogger.info("Client requested disconnect.");
 		if (disconnect_) {
 			return;
@@ -155,7 +168,7 @@ public class IOIOImpl implements IOIO, DisconnectListener {
 				protocol_.softClose();
 			}
 		} catch (IOException e) {
-			Log.e(TAG, "Soft close failed", e);
+			if (!silentMode_) Log.e(TAG, "Soft close failed", e);
                         //logMe.aLogger.log(Level.SEVERE, "Soft close failed", e);
 		}
 		connection_.disconnect();
@@ -167,7 +180,7 @@ public class IOIOImpl implements IOIO, DisconnectListener {
 		if (disconnect_) {
 			return;
 		}
-		Log.d(TAG, "Physical disconnect.");
+		if (!silentMode_) Log.d(TAG, "Physical disconnect.");
                 //logMe.aLogger.info("Physical disconnect.");
 		disconnect_ = true;
 		// The IOIOConnection doesn't necessarily know about the disconnect
@@ -211,7 +224,7 @@ public class IOIOImpl implements IOIO, DisconnectListener {
 		}
 		if (!incomingState_.waitForInterfaceSupport()) {
 			state_ = State.INCOMPATIBLE;
-			Log.e(TAG, "Required interface ID is not supported");
+			if (!silentMode_) Log.e(TAG, "Required interface ID is not supported");
                         //logMe.aLogger.info("Required interface ID is not supported");
 			throw new IncompatibilityException(
 					"IOIO firmware does not support required firmware: "
@@ -793,4 +806,8 @@ public class IOIOImpl implements IOIO, DisconnectListener {
 			throw new ConnectionLostException(e);
 		}
 	}
+        
+      
+        
+        
 }

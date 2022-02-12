@@ -1,3 +1,4 @@
+//LED
 /*
  * Copyright 2011 Ytai Ben-Tsvi. All rights reserved.
  *  
@@ -62,11 +63,13 @@ public class SerialPortIOIOConnectionBootstrap implements
         private static boolean settingsINIExists = false;
         public static LogMe logMe = null;
         public static boolean isWindows = System.getProperty("os.name").toLowerCase().startsWith("windows");
-
+        public static boolean silentMode_ = false;
+        
 	@Override
 	public void getFactories(Collection<IOIOConnectionFactory> result) {
 		
                 logMe = LogMe.getInstance();
+                silentMode_ = Pixel.getSilentMode(); //some users don't want to see the console messages
             
                 Collection<String> ports = getExplicitPorts();
 		if (ports == null) {
@@ -78,14 +81,14 @@ public class SerialPortIOIOConnectionBootstrap implements
 					+ "the java command line, where xyz is a colon-separated "
 					+ "list of port identifiers, e.g. COM1:COM2. for Windows or /dev/tty.usbmodem1411 on Mac OSX";
                         
-                        Log.w(TAG, msg);
+                        if (!silentMode_) Log.w(TAG, msg);
                         logMe.aLogger.info(msg);
                         
 			ports = getAllOpenablePorts();
 		}
 		for (final String port : ports) {
 		    
-			Log.d(TAG, "Adding serial port " + port);
+			if (!silentMode_) Log.d(TAG, "Adding serial port " + port);
 			result.add(new IOIOConnectionFactory() {
 				@Override
 				public String getType() {
@@ -116,12 +119,12 @@ public class SerialPortIOIOConnectionBootstrap implements
 			final CommPortIdentifier identifier = identifiers.nextElement();
 			if (identifier.getPortType() == CommPortIdentifier.PORT_SERIAL) {
 				if (checkIdentifier(identifier)) {
-					Log.d(TAG, "Adding serial port " + identifier.getName());
+					if (!silentMode_) Log.d(TAG, "Adding serial port " + identifier.getName());
                                         logMe.aLogger.info("Adding serial port " + identifier.getName());
 					result.add(identifier.getName());
 			    	
 				} else {
-					Log.w(TAG, "Serial port " + identifier.getName()
+					if (!silentMode_) Log.w(TAG, "Serial port " + identifier.getName()
 							+ " cannot be opened. Not adding.");
                                         logMe.aLogger.info("Serial port " + identifier.getName()
 							+ " cannot be opened. Not adding.");
@@ -167,7 +170,7 @@ public class SerialPortIOIOConnectionBootstrap implements
 					+ "To save time, edit settings.ini in the same directory as this jar or .exe and specify the port\n"
 					+ "and connect to PIXEL over each one.\n"
 					+ "Examples: port=COM7 for Windows, port=/dev/tty.usbmodemFA131 for Mac, and port=/dev/ACM0 for Raspberry Pi";
-                    System.out.println(msgport);
+                    if (!silentMode_) System.out.println(msgport);
                     logMe.aLogger.info(msgport);
                 }
                 
@@ -177,7 +180,7 @@ public class SerialPortIOIOConnectionBootstrap implements
 					+ "[INFO] Please ignore the 'Waiting for underlying connection' message below\n"
 					+ "[INFO] as this means Pixelcade is looking for the Pixelcade LED hardware\n"
                                         + "[INFO] which you don't have in this installation";
-                    System.out.println(lcdport);
+                    if (!silentMode_) System.out.println(lcdport);
                     logMe.aLogger.info(lcdport);
                     result.add(port_);
                     return result;
@@ -185,7 +188,7 @@ public class SerialPortIOIOConnectionBootstrap implements
                 
                 //if the port is not COM99, it means the user specified  port so let's return it and skip the port scan
                 if (port_ != null && !port_.equals("COM99")) {  //COM99 is the default in settings.ini which means the user didn't touch it so don't use if that's the case
-                    System.out.println("PIXEL port found in settings.ini: port=" + port_);
+                    if (!silentMode_) System.out.println("PIXEL port found in settings.ini: port=" + port_);
                     logMe.aLogger.info("PIXEL port found in settings.ini: port=" + port_);
                     result.add(port_);
                     return result;
@@ -222,7 +225,7 @@ public class SerialPortIOIOConnectionBootstrap implements
                                             + "Examples: ledResolution=64x32 for a single LED panel arcade marquee installation\n"
                                             + "Examples: ledResolution=128x32 for a two LED panel arcade marquee installation\n";
                                         
-                                         System.out.println(msgsettingsini);
+                                         if (!silentMode_) System.out.println(msgsettingsini);
                                          logMe.aLogger.info(msgsettingsini);
                                     }
                                     return null;

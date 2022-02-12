@@ -70,6 +70,17 @@ public class IOIOConnectionRegistry {
 	 * 
 	 * @return A collection of specifications.
 	 */
+    
+        private static boolean silentMode_ = false;
+        
+        public static void setSilentMode (boolean silentMode) {
+            silentMode_ = silentMode;
+        }
+    
+        public static boolean getSilentMode () {
+            return silentMode_;
+        }
+    
 	public static Collection<IOIOConnectionFactory> getConnectionFactories() {
 		Collection<IOIOConnectionFactory> result = new LinkedList<IOIOConnectionFactory>();
 		for (IOIOConnectionBootstrap bootstrap : bootstraps_) {
@@ -77,6 +88,8 @@ public class IOIOConnectionRegistry {
 		}
 		return result;
 	}
+        
+       
 
 	/**
 	 * For advanced usage only! Used for special runtime handling of bootstrap
@@ -112,14 +125,14 @@ public class IOIOConnectionRegistry {
 					.forName(className).asSubclass(
 							IOIOConnectionBootstrap.class);
 			bootstraps_.add(bootstrapClass.newInstance());
-			Log.d(TAG, "Successfully added bootstrap class: " + className);
+			if (!silentMode_) Log.d(TAG, "Successfully added bootstrap class: " + className);
 		} catch (ClassNotFoundException e) {
-			Log.d(TAG, "Bootstrap class not found: " + className
+			if (!silentMode_) Log.d(TAG, "Bootstrap class not found: " + className
 					+ ". Not adding.");
 		} catch (NoRuntimeSupportException e) {
-			Log.d(TAG, "No runtime support for: " + className + ". Not adding.");
+			if (!silentMode_) Log.d(TAG, "No runtime support for: " + className + ". Not adding.");
 		} catch (Throwable e) {
-			Log.e(TAG,
+			if (!silentMode_) Log.e(TAG,
 					"Exception caught while attempting to initialize connection factory",
 					e);
 		}
