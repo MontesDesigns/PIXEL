@@ -53,6 +53,10 @@ import org.onebeartoe.pixel.LogMe;
 import java.util.Queue; 
 import java.util.LinkedList;
 import javax.imageio.ImageIO;
+import ioio.lib.impl.IOIOImpl;
+import ioio.lib.util.IOIOConnectionRegistry;
+
+
 
 /**
  * @author Roberto Marquez
@@ -170,7 +174,7 @@ public class Pixel
     
     public static String OS = System.getProperty("os.name").toLowerCase();
     
-     private static int framecount = 0;
+    private static int framecount = 0;
   
     private static int fontSize = 32;
   
@@ -265,6 +269,8 @@ public class Pixel
     
     private static Boolean cycleFlag = false;
     
+    private static boolean silentMode_ = false;
+    
     //private TimerTask animateTimer = new AnimateTimer();
     
     /**
@@ -331,7 +337,6 @@ public class Pixel
           else if (isEmuelec_) {
           pixelHome = "/storage/roms/pixelcade/";
         }
-        
         
         animationsPath = pixelHome + "animations" + File.separator;            
         decodedAnimationsPath = animationsPath + "decoded" + File.separator;
@@ -531,7 +536,7 @@ public class Pixel
 			}
 		}
 		else {
-			System.out.println("PIXEL was not found...");
+			if (!silentMode_) System.out.println("PIXEL was not found...");
 			pixelHardwareVersion = "0";
 		}
                 
@@ -556,7 +561,7 @@ public class Pixel
 			}
 		}
 		else {
-			System.out.println("PIXEL was not found...");
+			if (!silentMode_) System.out.println("PIXEL was not found...");
 			pixelFirmware = "0";
 		}
         return pixelFirmware;
@@ -576,6 +581,7 @@ public class Pixel
     {
         return isLooping;
     }
+    
     
     //public String getArcadeHome() {
     //    return arcadePath;
@@ -715,7 +721,7 @@ public boolean GIFNeedsDecoding(String decodedDir, String gifName, int currentRe
     
 	gifName = FilenameUtils.removeExtension(gifName); //with no extension
 	
-	System.out.println("PIXEL LED panel resolution is: " + currentResolution);
+	if (!silentMode_) System.out.println("PIXEL LED panel resolution is: " + currentResolution);
         logMe.aLogger.info("PIXEL LED panel resolution is: " + currentResolution);
 	
 	//String decodedGIFPathTXT = currentDir + "/decoded/" + gifName + ".txt";
@@ -1398,7 +1404,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         }
         else 
         {
-            System.out.println("Decoded file does not exist");
+            if (!silentMode_) System.out.println("Decoded file does not exist");
         }
     }
     
@@ -1553,7 +1559,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         }
         else 
         {
-            System.out.println("Decoded file does not exist");
+            if (!silentMode_) System.out.println("Decoded file does not exist");
         }
     }
     
@@ -1867,8 +1873,8 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         this.font = this.fonts.get(fontFamily);
         this.font = new Font(fontFamily, 0, fontSize);
       } else {
-        System.out.println(fontFamily + " is not registered on this OS, let's register it now...");
-        this.logger.log(Level.INFO, fontFamily + " is not registered on this OS, let's register it now...");
+        if (!silentMode_) System.out.println(fontFamily + " is not registered on this OS, let's register it now...");
+        if (!silentMode_) this.logger.log(Level.INFO, fontFamily + " is not registered on this OS, let's register it now...");
         try {
           this.customFont = Font.createFont(0, new File("fonts//" + fontFamily + ".ttf"));
           GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
@@ -1876,13 +1882,13 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
           this.font = this.fonts.get(fontFamily);
           this.font = new Font(fontFamily, 0, fontSize);
         } catch (IOException e) {
-          System.out.println(fontFamily + " not found, please copy your TTF font into the fonts folder, defaulting to Arial Narrow 7");
-          this.logger.log(Level.INFO, fontFamily + " not found, please copy your TTF font into the fonts folder, defaulting to Arial Narrow 7");
+          if (!silentMode_) System.out.println(fontFamily + " not found, please copy your TTF font into the fonts folder, defaulting to Arial Narrow 7");
+          if (!silentMode_) this.logger.log(Level.INFO, fontFamily + " not found, please copy your TTF font into the fonts folder, defaulting to Arial Narrow 7");
           this.font = new Font("Arial Narrow 7", 0, this.KIND.height - 4);
           this.fonts.put(fontFamily, this.font);
         } catch (FontFormatException e) {
-          System.out.println(fontFamily + " not found, please copy your TTF font into the fonts folder, defaulting to Arial Narrow 7");
-          this.logger.log(Level.INFO, fontFamily + " not found, please copy your TTF font into the fonts folder, defaulting to Arial Narrow 7");
+          if (!silentMode_) System.out.println(fontFamily + " not found, please copy your TTF font into the fonts folder, defaulting to Arial Narrow 7");
+          if (!silentMode_) this.logger.log(Level.INFO, fontFamily + " not found, please copy your TTF font into the fonts folder, defaulting to Arial Narrow 7");
           this.font = new Font("Arial Narrow 7", 0, this.KIND.height - 4);
           this.fonts.put(fontFamily, this.font);
         } 
@@ -1898,7 +1904,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
       try {
         additionalBackgroundDrawing(g2d);
       } catch (Exception ex) {
-        this.logger.log(Level.SEVERE, (String)null, ex);
+        if (!silentMode_) this.logger.log(Level.SEVERE, (String)null, ex);
       } 
       if (doubleLine == true) {
         int doublelineoffset = -7;
@@ -1957,7 +1963,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
       try {
         additionalForegroundDrawing(g2d);
       } catch (Exception ex) {
-        this.logger.log(Level.SEVERE, (String)null, ex);
+        if (!silentMode_) this.logger.log(Level.SEVERE, (String)null, ex);
       } 
       g2d.dispose();
       int messageWidth = fm.stringWidth(this.scrollingText);
@@ -1965,12 +1971,12 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         messageWidth = fm.stringWidth(this.maxMultiLine); 
       if (messageWidth < this.KIND.width) {
         if (this.matrix == null) {
-          this.logger.log(Level.INFO, "There is no matrix for the text scrolller.");
+          if (!silentMode_) this.logger.log(Level.INFO, "There is no matrix for the text scrolller.");
         } else {
           try {
             writeImagetoMatrix(img, this.KIND.width, this.KIND.height);
           } catch (ConnectionLostException ex) {
-            this.logger.log(Level.SEVERE, (String)null, (Throwable)ex);
+            if (!silentMode_) this.logger.log(Level.SEVERE, (String)null, (Throwable)ex);
           } 
           if (this.isLooping.booleanValue()) {
             ScheduledExecutorService loopPNGservice = Executors.newScheduledThreadPool(1);
@@ -2000,7 +2006,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
     {
         if( this.mode.equals(mode) )
         {
-            System.out.println("Pixel is ignoring a setMode() call.  The mode is already " + this.mode + "/" + mode);
+            if (!silentMode_) System.out.println("Pixel is ignoring a setMode() call.  The mode is already " + this.mode + "/" + mode);
         }
         else
         {
@@ -2062,11 +2068,13 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 	          Dimension frameSize = d.getFrameSize();
 	          int frameWidth = frameSize.width;
 	          int frameHeight = frameSize.height;
-	         
-	          System.out.println("frame count: " + numFrames);
-	          System.out.println("frame delay: " + frameDelay);
-	          System.out.println("frame height: " + frameHeight);
-	          System.out.println("frame width: " + frameWidth);
+                  
+                  if (!silentMode_) {
+                    System.out.println("frame count: " + numFrames);
+                    System.out.println("frame delay: " + frameDelay);
+                    System.out.println("frame height: " + frameHeight);
+                    System.out.println("frame width: " + frameWidth);
+                  }
                   //logMe.aLogger.info("frame count: " + numFrames);
                   //logMe.aLogger.info("frame delay: " + frameDelay);
                   //logMe.aLogger.info("frame height: " + frameHeight);
@@ -2190,7 +2198,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 				}
 		}
 		else {
-			System.out.println("ERROR  Could not find file " + gifFilePath);
+			if (!silentMode_) System.out.println("ERROR  Could not find file " + gifFilePath);
                         logMe.aLogger.severe("Could not find file " + gifFilePath);
 		}
 	} 
@@ -2244,12 +2252,12 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 	          Dimension frameSize = d.getFrameSize();
 	          final int frameWidth = frameSize.width;
 	          final int frameHeight = frameSize.height;
-	         
-	          System.out.println("frame count: " + numFrames);
-	          System.out.println("frame delay: " + frameDelay);
-	          System.out.println("frame height: " + frameHeight);
-	          System.out.println("frame width: " + frameWidth);
-                 
+	          if (!silentMode_) {
+                    System.out.println("frame count: " + numFrames);
+                    System.out.println("frame delay: " + frameDelay);
+                    System.out.println("frame height: " + frameHeight);
+                    System.out.println("frame width: " + frameWidth);
+                  }
 	          
 	          
                 for (int i = 0; i < numFrames; i++)
@@ -2372,14 +2380,14 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                            catch (IOException e) 
                            {
 					// TODO Auto-generated catch block
-					System.out.println("ERROR, could not write " + gifName);
+					if (!silentMode_) System.out.println("ERROR, could not write " + gifName);
                                         //logMe.aLogger.severe("Could not write " + gifName);
 					e.printStackTrace();
                            }
 		}
 		else 
                 {
-			System.out.println("ERROR  Could not find " + gifSourcePath + gifName + ".gif in the JAR file");
+			if (!silentMode_) System.out.println("ERROR  Could not find " + gifSourcePath + gifName + ".gif in the JAR file");
                         //logMe.aLogger.severe("Could not write " + gifName);
                 }
     }
@@ -2398,9 +2406,10 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 String selectedFileName = FilenameUtils.getName(gifFilePath); 
                 fileType = FilenameUtils.getExtension(gifFilePath);
                 gifNameNoExt = FilenameUtils.removeExtension(selectedFileName); //with no extension
-		
-		System.out.println("Arcade file name: " + selectedFileName);
-		System.out.println("Arcade file name path: " + gifFilePath);
+		if (!silentMode_) {
+                    System.out.println("Arcade file name: " + selectedFileName);
+                    System.out.println("Arcade file name path: " + gifFilePath);
+                }
                 logMe.aLogger.info("Arcade file name: " + selectedFileName);
                 logMe.aLogger.info("Arcade file name path: " + gifFilePath);
                
@@ -2434,12 +2443,13 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 	          int frameWidth = frameSize.width;
 	          int frameHeight = frameSize.height;
 	         
-                 
-	          System.out.println("frame count: " + numFrames);
-	          System.out.println("frame delay: " + frameDelay);
-	          System.out.println("frame height: " + frameHeight);
-	          System.out.println("frame width: " + frameWidth);
-                  System.out.println("One time decoding..." + gifNameNoExt);
+                  if (!silentMode_) {
+                    System.out.println("frame count: " + numFrames);
+                    System.out.println("frame delay: " + frameDelay);
+                    System.out.println("frame height: " + frameHeight);
+                    System.out.println("frame width: " + frameWidth);
+                    System.out.println("One time decoding..." + gifNameNoExt);
+                  }
                   logMe.aLogger.info("frame count: " + numFrames);
                   logMe.aLogger.info("frame delay: " + frameDelay);
                   logMe.aLogger.info("frame height: " + frameHeight);
@@ -2644,13 +2654,13 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 					fOut.close();	
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					System.out.println("ERROR, could not write " + selectedFileName);
+					if (!silentMode_) System.out.println("ERROR, could not write " + selectedFileName);
                                         logMe.aLogger.severe("Could not write " + selectedFileName);
 					e.printStackTrace();
 				}
 		}
 		else {
-			System.out.println("ERROR  Could not find file " + gifFilePath);
+			if (!silentMode_) System.out.println("ERROR  Could not find file " + gifFilePath);
                         logMe.aLogger.severe("Could not write " + selectedFileName);
 		}
     }
@@ -2696,9 +2706,10 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 //else  { //there was no extension or it's a valid extension so proceed as normal and remove the extension if it's there
                 //    arcadeNameOnly = FilenameUtils.removeExtension(arcadeName);
                 //} 
-		
-		System.out.println("Arcade file name: " + selectedFileName);
-		System.out.println("Arcade file name path: " + gifFilePath);
+		if (!silentMode_) {
+                    System.out.println("Arcade file name: " + selectedFileName);
+                    System.out.println("Arcade file name path: " + gifFilePath);
+                }
                 logMe.aLogger.info("Arcade file name: " + selectedFileName);
                 logMe.aLogger.info("Arcade file name path: " + gifFilePath);
                
@@ -2749,11 +2760,13 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                     int frameHeight = frameSize.height;
                     
 	            //System.out.println("smallest frame delay: " + arcadeFrameDelayTarget);
-                    System.out.println("frame count: " + numFrames);
-                    System.out.println("frame delay: " + arcadeFrameDelayTarget);
-                    System.out.println("frame height: " + frameHeight);
-                    System.out.println("frame width: " + frameWidth);
-                    System.out.println("One time decoding..." + gifNameNoExt);
+                    if (!silentMode_) {
+                        System.out.println("frame count: " + numFrames);
+                        System.out.println("frame delay: " + arcadeFrameDelayTarget);
+                        System.out.println("frame height: " + frameHeight);
+                        System.out.println("frame width: " + frameWidth);
+                        System.out.println("One time decoding..." + gifNameNoExt);
+                    }
                     logMe.aLogger.info("frame count: " + numFrames);
                     logMe.aLogger.info("frame delay: " + arcadeFrameDelayTarget);
                     logMe.aLogger.info("frame height: " + frameHeight);
@@ -2965,14 +2978,14 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                             fOut.close();	
                     } catch (IOException e) {
                             // TODO Auto-generated catch block
-                            System.out.println("ERROR, could not write " + selectedFileName);
+                            if (!silentMode_) System.out.println("ERROR, could not write " + selectedFileName);
                             logMe.aLogger.severe("Could not write " + selectedFileName);
                             e.printStackTrace();
                     }
                    
 		} //did the file exist
 		else {
-			System.out.println("ERROR  Could not find file " + gifFilePath);
+			if (!silentMode_) System.out.println("ERROR  Could not find file " + gifFilePath);
                         logMe.aLogger.severe("Could not write " + selectedFileName);
 		}
     }
@@ -3191,7 +3204,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
     }
     
     public void addtoQueue(String mode, String consoleOrText, String FileNameOrSpeed, int loop, Boolean writeMode, Color color, int scrollSmooth) {
-        System.out.println("Adding item to Queue..."); 
+        if (!silentMode_) System.out.println("Adding item to Queue..."); 
         
         /* System.out.println("mode: " + mode); 
         System.out.println("text: " + consoleOrText); 
@@ -3209,16 +3222,17 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
             PixelQueue.add(mode + ";" + consoleOrText + ";" + FileNameOrSpeed + ";" + Integer.toString(loop) + ";" + writeMode.toString() + ";" + toHexString(color) + ";" + Integer.toString(scrollSmooth));
         } 
         catch (Exception e) { 
-            System.out.println("Queue Exception: " + e); 
+            if (!silentMode_) System.out.println("Queue Exception: " + e); 
         } 
         
         if (PixelQueue.size() > 50) {      //kind of a hack, adding this for LCD, we don't want the Q getting too big and taking up too much memory
             PixelQueue.clear();
             cycleFlag = false;
-            System.out.println("Max Queue Size Exceeded, Clearing Queue"); 
+            if (!silentMode_) System.out.println("Max Queue Size Exceeded, Clearing Queue"); 
         }
         
-        System.out.println("Queue Contents : " + PixelQueue);
+        if (!silentMode_) System.out.println("Queue Contents : " + PixelQueue);
+       
     }
    
     public void stopExistingTimer()
@@ -3334,19 +3348,22 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 
                        try 
                        {
-                           System.out.println("Found GIF: " + gifFilePath);
+                           if (!silentMode_) System.out.println("Found GIF: " + gifFilePath);
                            logMe.aLogger.info("Found GIF: " + gifFilePath);
                            animationFilename = selectedFileName;
                            if(gifTxtExists(decodedAnimationsPath,selectedFileName) == true && GIFRGB565Exists(decodedAnimationsPath,selectedFileName) == true)
                            {
-                               System.out.println("This GIF was already decoded");
+                               if (!silentMode_) System.out.println("This GIF was already decoded");
                                logMe.aLogger.info("This GIF was already decoded");
                            }
                            else
                            {
-                               System.out.println("Decoding " + selectedFileName);
-                               System.out.println("Decoding " + gifFilePath);
+                               if (!silentMode_) {
+                                    System.out.println("Decoding " + selectedFileName);
+                                    System.out.println("Decoding " + gifFilePath);
+                               }
                                logMe.aLogger.info("Decoding " + gifFilePath);
+                               
                                // the text file is not there so we cannot continue and we must decode, let's first copy the file to home dir
                                decodeArcadeGIFConstantFrameRate(decodedAnimationsPath, gifFilePath,selectedFileName, currentResolution, KIND.width, KIND.height);
                            }
@@ -3370,7 +3387,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                            currentResolution = getDecodedresolution(decodedAnimationsPath, animation_name);
                            GIFresolution = currentResolution;
 
-                           System.out.println("GIF Width: " + KIND.width + ", GIF Height: " + KIND.height);
+                           if (!silentMode_) System.out.println("GIF Width: " + KIND.width + ", GIF Height: " + KIND.height);
                            logMe.aLogger.info("GIF Width: " + KIND.width + ", GIF Height: " + KIND.height);
 
                            String pixelHardwareId = "not found";
@@ -3389,7 +3406,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                                interactiveMode();         //have to put back into interactive mode, otherwise we were playing locally
                                // need to tell PIXEL the frames per second to use, how fast to play the animations
                                writeMode(GIFfps);
-                               System.out.println("Now writing to PIXEL's SD card, the screen will go blank until writing has been completed...");
+                               if (!silentMode_) System.out.println("Now writing to PIXEL's SD card, the screen will go blank until writing has been completed...");
                                logMe.aLogger.info("Now writing to PIXEL's SD card, the screen will go blank until writing has been completed...");
 
                                WriteGIFAnimationTask();
@@ -3418,7 +3435,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                            Logger.getLogger(Pixel.class.getName()).log(Level.SEVERE, null, ex);
                        }
                 } else {
-                     System.out.println("** ERROR ** GIF file not found: " + gifFilePath);
+                     if (!silentMode_) System.out.println("** ERROR ** GIF file not found: " + gifFilePath);
                      logMe.aLogger.severe("GIF file not found: " + gifFilePath);
                 }
         }
@@ -3495,18 +3512,20 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 
                        try 
                        {
-                           System.out.println("Found GIF: " + gifFilePath);
+                           if (!silentMode_) System.out.println("Found GIF: " + gifFilePath);
                            logMe.aLogger.info("Found GIF: " + gifFilePath);
                            animationFilename = selectedFileName;
                            if(gifTxtExists(decodedAnimationsPath,selectedFileName) == true && GIFRGB565Exists(decodedAnimationsPath,selectedFileName) == true)
                            {
-                               System.out.println("This GIF was already decoded");
+                               if (!silentMode_) System.out.println("This GIF was already decoded");
                                logMe.aLogger.info("This GIF was already decoded");
                            }
                            else
                            {
-                               System.out.println("Decoding " + selectedFileName);
-                               System.out.println("Decoding " + gifFilePath);
+                               if (!silentMode_) {
+                                    System.out.println("Decoding " + selectedFileName);
+                                    System.out.println("Decoding " + gifFilePath);
+                               }
                                logMe.aLogger.info("Decoding " + gifFilePath);
                                // the text file is not there so we cannot continue and we must decode, let's first copy the file to home dir
                                decodeArcadeGIFConstantFrameRate(decodedAnimationsPath, gifFilePath,selectedFileName, currentResolution, KIND.width, KIND.height);
@@ -3514,7 +3533,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 
                            if (GIFArcadeNeedsDecoding(decodedAnimationsPath, selectedFileName, currentResolution,gifFilePath) == true)
                            {
-                               System.out.println("Selected LED panel is different than the encoded GIF, need to re-encode...");
+                               if (!silentMode_) System.out.println("Selected LED panel is different than the encoded GIF, need to re-encode...");
                                logMe.aLogger.info("Selected LED panel is different than the encoded GIF, need to re-encode...");
                                decodeArcadeGIFConstantFrameRate(decodedAnimationsPath, gifFilePath, selectedFileName, currentResolution, KIND.width, KIND.height);
                            }
@@ -3531,7 +3550,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                            currentResolution = getDecodedresolution(decodedAnimationsPath, animation_name);
                            GIFresolution = currentResolution;
 
-                           System.out.println("GIF Width: " + KIND.width + ", GIF Height: " + KIND.height);
+                           if (!silentMode_) System.out.println("GIF Width: " + KIND.width + ", GIF Height: " + KIND.height);
                            logMe.aLogger.info("GIF Width: " + KIND.width + ", GIF Height: " + KIND.height);
 
                            String pixelHardwareId = "not found";
@@ -3555,7 +3574,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                             if (PinballAnimationInterrupt.get() == true) {  //we want to know if the previous animation had finished or is still running so we can overlay or not
                                 PinballAnimationWasInterrupted.set(true);
                                 lastGIFLatestFrame = currentGIFLatestFrame;
-                                System.out.println("lastGIFIndex before interrupt: " +  lastGIFLatestFrame);
+                                if (!silentMode_) System.out.println("lastGIFIndex before interrupt: " +  lastGIFLatestFrame);
                                 //if we were interrupted, let's get the index counter of last gif here!
 
                             }
@@ -3573,12 +3592,12 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                                 Logger.getLogger(Pixel.class.getName()).log(Level.SEVERE, null, ex);
                             }
                 } else {
-                     System.out.println("** ERROR ** GIF file not found: " + gifFilePath);
+                     if (!silentMode_) System.out.println("** ERROR ** GIF file not found: " + gifFilePath);
                      logMe.aLogger.severe("GIF file not found: " + gifFilePath);
                 }
         }
         else {
-            System.out.println("[ERROR] Pixelcade not Connected");
+            if (!silentMode_) System.out.println("[ERROR] Pixelcade not Connected");
             logMe.aLogger.severe("[ERROR] Pixelcade not Connected");
         }
     }
@@ -3647,7 +3666,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                File gifFileRoot = new File(gifFilePath);
                 if (!gifFileRoot.exists()) {
                    gifFileExists = false;
-                   System.out.println("** ERROR ** GIF file not found: " + gifFilePath);
+                   if (!silentMode_) System.out.println("** ERROR ** GIF file not found: " + gifFilePath);
                    logMe.aLogger.severe("GIF file not found: " + gifFilePath);
                }
            } 
@@ -3664,18 +3683,20 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 
                       try 
                       {
-                          System.out.println("Found GIF: " + gifFilePath);
+                          if (!silentMode_) System.out.println("Found GIF: " + gifFilePath);
                           logMe.aLogger.info("Found GIF: " + gifFilePath);
                           animationFilename = selectedFileName;
                           if(gifTxtExists(decodedAnimationsPath,selectedFileName) == true && GIFRGB565Exists(decodedAnimationsPath,selectedFileName) == true)
                           {
-                              System.out.println("This GIF was already decoded");
+                              if (!silentMode_) System.out.println("This GIF was already decoded");
                               logMe.aLogger.info("This GIF was already decoded");
                           }
                           else
                           {
-                              System.out.println("Decoding " + selectedFileName);
-                              System.out.println("Decoding " + gifFilePath);
+                              if (!silentMode_) {
+                                System.out.println("Decoding " + selectedFileName);
+                                System.out.println("Decoding " + gifFilePath);
+                              }
                               logMe.aLogger.info("Decoding " + gifFilePath);
                               // the text file is not there so we cannot continue and we must decode, let's first copy the file to home dir
                               decodeArcadeGIFConstantFrameRate(decodedAnimationsPath, gifFilePath,selectedFileName, currentResolution, KIND.width, KIND.height);
@@ -3683,7 +3704,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 
                           if (GIFArcadeNeedsDecoding(decodedAnimationsPath, selectedFileName, currentResolution,gifFilePath) == true)
                           {
-                              System.out.println("Selected LED panel is different than the encoded GIF, need to re-encode...");
+                              if (!silentMode_) System.out.println("Selected LED panel is different than the encoded GIF, need to re-encode...");
                               logMe.aLogger.info("Selected LED panel is different than the encoded GIF, need to re-encode...");
                               decodeArcadeGIFConstantFrameRate(decodedAnimationsPath, gifFilePath, selectedFileName, currentResolution, KIND.width, KIND.height);
                           }
@@ -3700,7 +3721,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                           currentResolution = getDecodedresolution(decodedAnimationsPath, animation_name);
                           GIFresolution = currentResolution;
 
-                          System.out.println("GIF Width: " + KIND.width + ", GIF Height: " + KIND.height);
+                          if (!silentMode_) System.out.println("GIF Width: " + KIND.width + ", GIF Height: " + KIND.height);
                           logMe.aLogger.info("GIF Width: " + KIND.width + ", GIF Height: " + KIND.height);
 
 
@@ -3723,7 +3744,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                               interactiveMode();         //have to put back into interactive mode, otherwise we were playing locally
                               // need to tell PIXEL the frames per second to use, how fast to play the animations
                               writeMode(GIFfps);
-                              System.out.println("Now writing to PIXEL's SD card, the screen will go blank until writing has been completed...");
+                              if (!silentMode_) System.out.println("Now writing to PIXEL's SD card, the screen will go blank until writing has been completed...");
                               logMe.aLogger.info("Now writing to PIXEL's SD card, the screen will go blank until writing has been completed...");
 
                               // we'll run this in the background and also update the UI with progress
@@ -3771,7 +3792,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                           Logger.getLogger(Pixel.class.getName()).log(Level.SEVERE, null, ex);
                       }
                } else {
-                    System.out.println("** ERROR ** GIF file not found: " + gifFilePath);
+                    if (!silentMode_) System.out.println("** ERROR ** GIF file not found: " + gifFilePath);
                     logMe.aLogger.severe("GIF file not found: " + gifFilePath);
                }
           }
@@ -3802,18 +3823,18 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         
         if(gifTxtExists(decodedAnimationsPath,selectedFileName) == true && GIFRGB565Exists(decodedAnimationsPath,selectedFileName) == true) 
         {
-            System.out.println("This GIF was already decoded");
+            if (!silentMode_) System.out.println("This GIF was already decoded");
         }
         else 
         {
-            System.out.println("Decoding " + selectedFileName);
+            if (!silentMode_) System.out.println("Decoding " + selectedFileName);
             // the text file is not there so we cannot continue and we must decode, let's first copy the file to home dir
             decodeGIFJar(decodedAnimationsPath, gifSourcePath,selectedFileName, currentResolution, KIND.width, KIND.height);
         }
 			    
         if (GIFNeedsDecoding(decodedAnimationsPath, selectedFileName, currentResolution) == true) 
         {
-            System.out.println("Selected LED panel is different than the encoded GIF, need to re-encode...");
+            if (!silentMode_) System.out.println("Selected LED panel is different than the encoded GIF, need to re-encode...");
             decodeGIFJar(decodedAnimationsPath, gifSourcePath, selectedFileName, currentResolution, KIND.width, KIND.height);
         }
 	
@@ -3828,11 +3849,12 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         
         currentResolution = getDecodedresolution(decodedAnimationsPath, animation_name);
         GIFresolution = currentResolution;
-
-        System.out.println("Selected GIF Resolution: " + GIFresolution);
-        System.out.println("Current LED Panel Resolution: " + currentResolution);
-        System.out.println("GIF Width: " + KIND.width);
-        System.out.println("GIF Height: " + KIND.height);
+        if (!silentMode_) {
+            System.out.println("Selected GIF Resolution: " + GIFresolution);
+            System.out.println("Current LED Panel Resolution: " + currentResolution);
+            System.out.println("GIF Width: " + KIND.width);
+            System.out.println("GIF Height: " + KIND.height);
+        }
         
         //System.out.println("The existing timer was stopped");
 		
@@ -3852,7 +3874,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
             
             // need to tell PIXEL the frames per second to use, how fast to play the animations
             writeMode(GIFfps); 
-            System.out.println("Now writing to PIXEL's SD card, the screen will go blank until writing has been completed..."); 
+            if (!silentMode_) System.out.println("Now writing to PIXEL's SD card, the screen will go blank until writing has been completed..."); 
 
             // we'll run this in the background and also update the UI with progress
             //System.out.println("The Pixel animation writer is being created");
@@ -3942,7 +3964,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 url = PNGFileFullPath.toURI().toURL();
                 image = ImageIO.read(url);
 
-                System.out.println("PNG image found: " + url.toString());
+                if (!silentMode_) System.out.println("PNG image found: " + url.toString());
                 logMe.aLogger.info("PNG image found: " + url.toString());
 
                 //stopExistingTimer("png",consoleNameMapped,PNGNameWithExtension,"0",writeMode, null);
@@ -4132,9 +4154,9 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 
             Graphics2D g2d = img.createGraphics();
             
-            System.out.println("paintng clock");
+            if (!silentMode_) System.out.println("paintng clock");
             clock.paint(g2d);
-            System.out.println("clock painted");
+            if (!silentMode_) System.out.println("clock painted");
 //TODO: keep this around, just in case            
             g2d.dispose();
 
@@ -4150,9 +4172,9 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
             {
                 try 
                 {  
-                    System.out.println("writing clock");
+                    if (!silentMode_) System.out.println("writing clock");
                     writeImagetoMatrix(img, KIND.width, KIND.height);
-                    System.out.println("clock written");
+                    if (!silentMode_) System.out.println("clock written");
                 } 
                 catch (ConnectionLostException ex) 
                 {
@@ -4175,18 +4197,18 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
     
     {
             String message = "Pixel is writing a GIF to the hardware.";
-            System.out.println(message);
+            if (!silentMode_) System.out.println(message);
             
             //let's loop through and send frame to PIXEL with no delay
             for(int y=0; y<GIFnumFrames; y++) 
             { 
                 //Al removed the -1, make sure to test that!!!!!
                 sendPixelDecodedFrame(decodedAnimationsPath, animationFilename, y, GIFnumFrames, GIFresolution, KIND.width,KIND.height);
-                System.out.print("."); //indicator that shows the user writing is happening, one dot equals one frame written
+                if (!silentMode_) System.out.print("."); //indicator that shows the user writing is happening, one dot equals one frame written
             }
 
             message = "Pixel is done writing the GIF, setting PIXEL to local playback mode.";
-            System.out.println(message);
+            if (!silentMode_) System.out.println(message);
             
             try {                                 //this delay seems to help as we were getting a ioio disconnect without this
                 Thread.sleep(100);
@@ -4299,7 +4321,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 loopTimesGlobal = 0;
                 isLooping = false;
                 loop99999FlagGIF = false; //reset the flag
-                System.out.println("Clearing Queue and Playing Indefintately");
+                if (!silentMode_) System.out.println("Clearing Queue and Playing Indefintately");
                 PixelQueue.clear(); //let's clear the Q
                 cycleFlag = false;
             }
@@ -4310,7 +4332,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 loopTimesGlobal = 0;
                 isLooping = false;
                 loop99999FlagGIF = false; //reset the flag
-                System.out.println("Done looping GIF, now checking Queue");
+                if (!silentMode_) System.out.println("Done looping GIF, now checking Queue");
                 doneLoopingCheckQueue(cycleFlag);
                 
             } else {
@@ -4374,7 +4396,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 loopTimesGlobal = 0;
                 isLooping = false;
                 loop99999FlagPNG = false; //reset the flag
-                System.out.println("Clearing Queue and Playing Indefintately");
+                if (!silentMode_) System.out.println("Clearing Queue and Playing Indefintately");
                 PixelQueue.clear(); //let's clear the Q
                 cycleFlag = false;
             }
@@ -4385,7 +4407,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 loopPNGCounter = 0;
                 loopTimesGlobal = 0;
                 isLooping = false;
-                System.out.println("Done time looping PNG, now checking Queue");
+                if (!silentMode_) System.out.println("Done time looping PNG, now checking Queue");
                 doneLoopingCheckQueue(cycleFlag);
             }
         }
@@ -4428,18 +4450,18 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
          
          //ok we've stopped things, now let's check if anything is in the queue
          //Object firstElement = PixelQueue.peek();
-         System.out.println("Items in the Queue: " + PixelQueue);
+         if (!silentMode_) System.out.println("Items in the Queue: " + PixelQueue);
          
          if (!PixelQueue.isEmpty()) {
              
-              System.out.println("Processing items in the Queue");
+              if (!silentMode_) System.out.println("Processing items in the Queue");
               //we've got some stuff in the queue so let's process
               QueueCommand = PixelQueue.element(); //get the item in the top of the queue
               String [] QueueCommandArray = QueueCommand.split(";"); 
               
               if (cycle_)  {//cycle means we will cycle between scrolling text and a GIF or PNG, this was a request from AtGames
                 PixelQueue.add(QueueCommand);    //so we'll just add to the Q so the Q is never empty until we get an interrupt command
-                System.out.println("Cycle Mode");
+                if (!silentMode_) System.out.println("Cycle Mode");
               }  
               
               /*
@@ -4488,7 +4510,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                       
                       if (mode_.equals("gif")) {
                           PixelQueue.remove();
-                          System.out.println("Processing GIF Queue item...");
+                          if (!silentMode_) System.out.println("Processing GIF Queue item...");
                           try {
                               writeArcadeAnimation(console_, filenameWithExt_, writeMode_, loop_, true); //sending true for pixelconnected as we would not have gotten here if pixel was not connected
                           } catch (NoSuchAlgorithmException ex) {
@@ -4498,7 +4520,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                       
                       else if (mode_.equals("animations")) {
                           PixelQueue.remove();
-                          System.out.println("Processing Animation Queue item...");
+                          if (!silentMode_) System.out.println("Processing Animation Queue item...");
                           try {
                               writeAnimationFilePath(console_,filenameWithExt_,writeMode_,loop_,true); //sending true for pixelconnected as we would not have gotten here if pixel was not connected
                           } catch (NoSuchAlgorithmException ex) {
@@ -4509,7 +4531,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                       else {  //it was a png
                            //public void writeArcadeImage(File PNGFileFullPath, Boolean writeMode, int loop, String consoleNameMapped, String PNGNameWithExtension) 
                            //first we need to construct the full PNG path
-                            System.out.println("Processing PNG Queue item...");
+                            if (!silentMode_) System.out.println("Processing PNG Queue item...");
                             String arcadeFilePathPNG = pixelHome + console_ + "/" + filenameWithExt_;
                             File arcadeFilePNG = new File(arcadeFilePathPNG);
                             PixelQueue.remove();
@@ -4520,7 +4542,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                                     Logger.getLogger(Pixel.class.getName()).log(Level.SEVERE, null, ex);
                                 }
                             } else {
-                                System.out.println("Files does not exist: " + arcadeFilePathPNG);
+                                if (!silentMode_) System.out.println("Files does not exist: " + arcadeFilePathPNG);
                             }
                               
                       }
@@ -4556,7 +4578,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                                 PixelQueue.remove(); 
                            } 
                        catch (Exception e) { 
-                                System.out.println("Exception: " + e);
+                                if (!silentMode_) System.out.println("Exception: " + e);
                        }
                      
                        scrollText(text_, loop_, speed_, color_, true,scrollsmooth_);
@@ -4570,28 +4592,28 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                                 PixelQueue.remove(); 
                             } 
                         catch (Exception e) { 
-                                System.out.println("Exception: " + e);
+                                if (!silentMode_) System.out.println("Exception: " + e);
                         }
                      
                       playLocalMode();
-                      System.out.println("Executing Queue command for localplayback and clearing the Queue...");
+                      if (!silentMode_) System.out.println("Executing Queue command for localplayback and clearing the Queue...");
                       PixelQueue.clear();
                       cycleFlag = false;
                      
                   }
                   
                   else {
-                      System.out.println("ERROR: Invalid Queue Command Format");
+                      if (!silentMode_) System.out.println("ERROR: Invalid Queue Command Format");
                   }
                   
                   
               }
               else {
-                  System.out.println("ERROR: Queue parameters are not correct");
+                  if (!silentMode_) System.out.println("ERROR: Queue parameters are not correct");
               }
              
          } else {
-             System.out.println("Queue is empty, blanking display");
+             if (!silentMode_) System.out.println("Queue is empty, blanking display");
                 //does not look like we need to add a check here to not call this if the Q command is localplayback
                 interactiveMode(); //TO DO send a blank frame better way
          }
@@ -5034,23 +5056,33 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
     } */
      
      
-     public static boolean isWindows() {
+    public static boolean isWindows() {
 
 		return (OS.indexOf("win") >= 0);
 
 	}
 
-	public static boolean isMac() {
+    public static boolean isMac() {
 
-		return (OS.indexOf("mac") >= 0);
+            return (OS.indexOf("mac") >= 0);
 
-	}
+    }
 
-	public static boolean isUnix() {
+    public static boolean isUnix() {
 
-		return (OS.indexOf("nix") >= 0 || OS.indexOf("nux") >= 0 || OS.indexOf("aix") > 0 );
-		
-	}
+            return (OS.indexOf("nix") >= 0 || OS.indexOf("nux") >= 0 || OS.indexOf("aix") > 0 );
+
+    }
+    
+    public static void setSilentMode (boolean silentMode) {
+        silentMode_ = silentMode;
+        IOIOImpl.setSilentMode(silentMode); //adding it here for pixelcade connect messages
+        IOIOConnectionRegistry.setSilentMode(silentMode);
+    }
+    
+    public static boolean getSilentMode () {
+        return silentMode_;
+    }
         
         
  public class ScrollTextTask implements Runnable {
@@ -5068,7 +5100,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         try {
           Pixel.this.additionalBackgroundDrawing(g2d);
         } catch (Exception ex) {
-          Pixel.this.logger.log(Level.SEVERE, (String)null, ex);
+          if (!silentMode_) Pixel.this.logger.log(Level.SEVERE, (String)null, ex);
         } 
         if (Pixel.doubleLine == true) {
           int doublelineoffset = -7;
@@ -5127,16 +5159,16 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         try {
           Pixel.this.additionalForegroundDrawing(g2d);
         } catch (Exception ex) {
-          Pixel.this.logger.log(Level.SEVERE, (String)null, ex);
+          if (!silentMode_) Pixel.this.logger.log(Level.SEVERE, (String)null, ex);
         } 
         g2d.dispose();
         if (Pixel.this.matrix == null) {
-          Pixel.this.logger.log(Level.INFO, "There is no matrix for the text scrolller.");
+          if (!silentMode_) Pixel.this.logger.log(Level.INFO, "There is no matrix for the text scrolller.");
         } else if (Pixel.this.scrollingTextTimerRunningFlag.get() == true) {
           try {
             Pixel.this.writeImagetoMatrix(img, Pixel.this.KIND.width, Pixel.this.KIND.height);
           } catch (ConnectionLostException ex) {
-            Pixel.this.logger.log(Level.SEVERE, (String)null, (Throwable)ex);
+            if (!silentMode_) Pixel.this.logger.log(Level.SEVERE, (String)null, (Throwable)ex);
           } 
         } 
         int messageWidth = fm.stringWidth(Pixel.this.scrollingText);
@@ -5151,13 +5183,13 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
             Pixel.this.loopTimesGlobal = 0;
             Pixel.this.isLooping = Boolean.valueOf(false);
             Pixel.this.loop99999FlagText = Boolean.valueOf(false);
-            System.out.println("Clearing Queue and Playing Indefintately");
+            if (!silentMode_) System.out.println("Clearing Queue and Playing Indefintately");
             Pixel.this.PixelQueue.clear();
             cycleFlag = false;
           } 
           if (Pixel.this.isLooping.booleanValue() == true && Pixel.this.loopScrollingTextCounter >= Pixel.this.loopTimesGlobal) {
             Pixel.this.loopScrollingTextCounter = 0;
-            System.out.println("Done looping scrolling text, now checking Queue");
+            if (!silentMode_) System.out.println("Done looping scrolling text, now checking Queue");
             Pixel.this.doneLoopingCheckQueue(cycleFlag);
           } 
         } else {
