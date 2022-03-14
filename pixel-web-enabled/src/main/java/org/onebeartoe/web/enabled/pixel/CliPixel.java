@@ -166,6 +166,10 @@ public class CliPixel
         return silentMode;
     }
    
+   public static void setSilentMode(boolean silentMode_) {
+        silentMode = silentMode_;
+    }
+   
    public static boolean getBackgroundMode() {
         return backgroundMode;
     }

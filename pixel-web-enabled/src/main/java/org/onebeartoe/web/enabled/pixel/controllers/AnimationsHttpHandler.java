@@ -42,6 +42,29 @@ public class AnimationsHttpHandler extends ImageResourceHttpHandler
         modeName = "animation";
     }
     
+    public void handleGIFCycle(String consoleName, String arcadeName, boolean writeMode, int Marqueeloop, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth) {  //per AtGames request, this will loop between a PNG/GIF and Scrolling Text until Q is interrupted
+            Pixel pixel = this.application.getPixel();
+            try {
+              //pixel.writeArcadeAnimation(consoleName, arcadeName, saveAnimation.booleanValue(), loop, WebEnabledPixel.pixelConnected);
+              pixel.ArcadeCycleGIF(consoleName, arcadeName, false, Marqueeloop, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard coding the text loop to 1
+
+              //String selectedPlatformName, String selectedFileName, boolean writeMode, int Marqueeloop, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth
+            } catch (NoSuchAlgorithmException ex) {
+              Logger.getLogger(ArcadeHttpHandler.class.getName()).log(Level.SEVERE, (String)null, ex);
+            }
+    }
+  
+  public void handleGIF(String consoleName, String arcadeName, Boolean saveAnimation, int loop) {   
+    Pixel pixel = this.application.getPixel();
+    try {
+      pixel.writeArcadeAnimation(consoleName, arcadeName, saveAnimation.booleanValue(), loop, WebEnabledPixel.pixelConnected);
+    } catch (NoSuchAlgorithmException ex) {
+      Logger.getLogger(ArcadeHttpHandler.class.getName()).log(Level.SEVERE, (String)null, ex);
+    }
+  }
+  
+
+    
     @Override
     //protected void writeImageResource(String imageClassPath) throws IOException, ConnectionLostException
     protected void writeImageResource(String urlParams) throws IOException, ConnectionLostException
@@ -57,6 +80,16 @@ public class AnimationsHttpHandler extends ImageResourceHttpHandler
         String arcadeNameOnly = null;
         boolean saveAnimation = false;
         boolean randomGIF = false;
+        int scrollsmooth_ = 1;
+        Long speeddelay_ = Long.valueOf(10L);
+        String speed_ = null;
+        Long speed = null;
+        Color color = null;
+        boolean cycle_ = false;
+        int fontSize_ = 0;
+        int yOffset_ = 0;
+        int lines_ = 1;
+        String font_ = null;
 
         //logger.log(Level.INFO, "animation handler is writing " + imageClassPath);
         LogMe logMe = LogMe.getInstance();
@@ -87,6 +120,9 @@ public class AnimationsHttpHandler extends ImageResourceHttpHandler
                         break;
                     case "loop": //loop
                        loop_ = Integer.valueOf(param.getValue());
+                       break;
+                    case "font":
+                        font_ = param.getValue();
                         break;
                     case "c": //color
                        color_ = param.getValue();
@@ -94,6 +130,21 @@ public class AnimationsHttpHandler extends ImageResourceHttpHandler
                     case "r": //random   
                         randomGIF = true;
                         break;
+                    case "ss":
+                        scrollsmooth_ = Integer.valueOf(param.getValue()).intValue();
+                        break;    
+                    case "scrollsmooth":
+                        scrollsmooth_ = Integer.valueOf(param.getValue()).intValue();
+                         break;
+                    case "speed":
+                        speed_ = param.getValue();
+                         break;
+                    case "color":
+                        color_ = param.getValue();
+                        break;    
+                    case "cycle":  //cycles indefintely from PNG/GIF to Text until Q is interrupted
+                        cycle_ = true;
+                        break;    
                     }
         }
   
@@ -199,6 +250,54 @@ public class AnimationsHttpHandler extends ImageResourceHttpHandler
                     System.out.println("Animation Handler sending GIF: " + arcadeNameOnly + ".gif");
                     logMe.aLogger.info("Animation Handler sending GIF: " + arcadeNameOnly + ".gif");
             }
+            
+            if (text_ != "" && !WebEnabledPixel.isMister()) {  //scrolling text does not work on MiSTER :-(
+                  
+                int LED_MATRIX_ID = WebEnabledPixel.getMatrixID();
+                speed = Long.valueOf(WebEnabledPixel.getScrollingTextSpeed(LED_MATRIX_ID));
+                if (speed_ != null) {
+                  speed = Long.valueOf(speed_);
+                  if (speed.longValue() == 0L)
+                    speed = Long.valueOf(10L); 
+                } 
+
+                if (scrollsmooth_ == 0) {
+                  String scrollSpeedSettings = WebEnabledPixel.getTextScrollSpeed();
+                  scrollsmooth_ = WebEnabledPixel.getScrollingSmoothSpeed(scrollSpeedSettings);
+                } 
+
+                if (font_ == null)
+                  font_ = WebEnabledPixel.getDefaultFont(); 
+
+                this.application.getPixel();
+                Pixel.setFontFamily(font_);
+                if (yOffset_ == 0)
+                  yOffset_ = WebEnabledPixel.getDefaultyTextOffset(); 
+
+                this.application.getPixel();
+                Pixel.setYOffset(yOffset_);
+                if (fontSize_ == 0)
+                  fontSize_ = WebEnabledPixel.getDefaultFontSize(); 
+                this.application.getPixel();
+                Pixel.setFontSize(fontSize_);
+
+                if (lines_ == 2) 
+                    Pixel.setDoubleLine(true);
+                else if (lines_ == 4)
+                    Pixel.setFourLine(true);
+                else
+                    Pixel.setDoubleLine(false); //don't forget to set it back
+                
+                 if (color_ == null) {
+                    if (WebEnabledPixel.getTextColor().equals("random")) {
+                      color = WebEnabledPixel.getRandomColor();
+                    } else {
+                      color = WebEnabledPixel.getColorFromHexOrName(WebEnabledPixel.getTextColor());
+                    } 
+                  } else {
+                    color = WebEnabledPixel.getColorFromHexOrName(color_);
+                } 
+            } 
 
             Pixel pixel = application.getPixel();
 
@@ -211,12 +310,34 @@ public class AnimationsHttpHandler extends ImageResourceHttpHandler
                 arcadeNameOnly = FilenameUtils.getBaseName(randomAnimationName); //stripping out the extension
             }
             
-            try {
-                // pixel.writeAnimation(animationName, saveAnimation); //old code, this only worked for gifs that were in the original jar
-                pixel.writeAnimationFilePath("animations", arcadeNameOnly + ".gif", saveAnimation,loop_,WebEnabledPixel.pixelConnected);  
-            } catch (NoSuchAlgorithmException ex) {
-                //Logger.getLogger(AnimationsHttpHandler.class.getName()).log(Level.SEVERE, null, ex);
+            
+            if (cycle_ && !WebEnabledPixel.isMister()) {  //scrolling text does not work on MiSTER :-(
+
+                if (text_ != "") {
+                  handleGIFCycle("animations/gifsource", arcadeNameOnly + ".gif", false, loop_,true,text_,loop_,speed,color,scrollsmooth_);
+                }
+                else {
+                   if (!CliPixel.getSilentMode()) System.out.println("[ERROR] The cycle param must also have text specified");
+                }
+
             }
+            else {
+                   try {
+                       // pixel.writeAnimation(animationName, saveAnimation); //old code, this only worked for gifs that were in the original jar
+                       pixel.writeAnimationFilePath("animations", arcadeNameOnly + ".gif", saveAnimation,loop_,WebEnabledPixel.pixelConnected);  
+                   } catch (NoSuchAlgorithmException ex) {
+                       //Logger.getLogger(AnimationsHttpHandler.class.getName()).log(Level.SEVERE, null, ex);
+                   }
+            }
+            
+            
+            
+//            try {
+//                // pixel.writeAnimation(animationName, saveAnimation); //old code, this only worked for gifs that were in the original jar
+//                pixel.writeAnimationFilePath("animations", arcadeNameOnly + ".gif", saveAnimation,loop_,WebEnabledPixel.pixelConnected);  
+//            } catch (NoSuchAlgorithmException ex) {
+//                //Logger.getLogger(AnimationsHttpHandler.class.getName()).log(Level.SEVERE, null, ex);
+//            }
         
         } else {
             

@@ -70,11 +70,11 @@ public class StillImageHttpHandler extends ImageResourceHttpHandler
         if( imageClassPath.contains("/save/"))  saveAnimation = true;
           
         //now let's find out if PNG or GIF
-        
-        System.out.println("arcadeNameOnly: " + arcadeName);
-        System.out.println("ext: " + ext);
-        System.out.println("path to file: " + path);
-        
+        if (!CliPixel.getSilentMode()) {
+            System.out.println("arcadeNameOnly: " + arcadeName);
+            System.out.println("ext: " + ext);
+            System.out.println("path to file: " + path);
+        }
         
         if (WebEnabledPixel.getLCDMarquee().equals("yes")) {
             try {
@@ -155,7 +155,7 @@ public class StillImageHttpHandler extends ImageResourceHttpHandler
         } 
         else {
             
-            System.out.println("**** ERROR **** Sorry only PNG and GIF are supported, cannot handle " + path);
+            if (!CliPixel.getSilentMode()) System.out.println("**** ERROR **** Sorry only PNG and GIF are supported, cannot handle " + path);
             logMe.aLogger.severe("Sorry only PNG and GIF are supported, cannot handle " + path);
         }
     }        

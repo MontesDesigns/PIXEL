@@ -55,13 +55,13 @@ public class lcdfinder implements ServiceListener {
       embeddedLoc = event.getInfo().getServer().replace("._pixelcade._tcp","");
       embeddedLoc = embeddedLoc.substring(0, embeddedLoc.length() - 1);
       embeddedLoc = embeddedLoc.replace("SuperPixelcade-","");
-      System.out.println("Pixelcade LCD Detected: [" + embeddedLoc +"]");
+      if (!CliPixel.getSilentMode()) System.out.println("Pixelcade LCD Detected: [" + embeddedLoc +"]");
       Pixelcades.add(embeddedLoc);
     }
 
     @Override
     public void serviceRemoved(ServiceEvent event) {
-      System.out.println("Service removed: " + event.getInfo());
+      if (!CliPixel.getSilentMode()) System.out.println("Service removed: " + event.getInfo());
     }
 
     @Override
@@ -112,7 +112,7 @@ public class lcdfinder implements ServiceListener {
        logMe = LogMe.getInstance();
         
         
-       System.out.println("[Pixelcade LCD NOT FOUND] " + LCDNamefromSettings);
+       if (!CliPixel.getSilentMode()) System.out.println("[Pixelcade LCD NOT FOUND] " + LCDNamefromSettings);
        LogMe.aLogger.info("[Pixelcade LCD NOT FOUND] " + LCDNamefromSettings);
        LCDTargetid = getLCDid(LCDNamefromSettings);
        //now does this target id still have a hyphen , ie, it is a network duplicate, then we only want what is left of that hyphen
@@ -120,7 +120,7 @@ public class lcdfinder implements ServiceListener {
            LCDTargetid = getLCDidLeftHyphen(LCDTargetid);
        }
        
-       System.out.println("Searching your network for a Pixelcade LCD containing: [" + LCDTargetid + "]");
+       if (!CliPixel.getSilentMode()) System.out.println("Searching your network for a Pixelcade LCD containing: [" + LCDTargetid + "]");
        LogMe.aLogger.info("Searching your network for a Pixelcade LCD containing: [" + LCDTargetid + "]");
         
       //***************************************************
@@ -147,7 +147,7 @@ public class lcdfinder implements ServiceListener {
        TimerTask task = new TimerTask() {  //one time timer that run afer 10 seconds of searching for Pixelcades
             public void run() {
                 
-                System.out.println("Number of Pixelcade LCD(s) Discovered: [" +  Pixelcades.size() + "]");
+                if (!CliPixel.getSilentMode()) System.out.println("Number of Pixelcade LCD(s) Discovered: [" +  Pixelcades.size() + "]");
                 LogMe.aLogger.info("Number of Pixelcade LCD(s) Discovered: [" +  Pixelcades.size() + "]");
                     
                 for (int i = 0; i < Pixelcades.size(); i++) {
@@ -162,17 +162,17 @@ public class lcdfinder implements ServiceListener {
                             
                             WebEnabledPixel.setLCDMarqueeHostName(Pixelcades.get(i));
                             
-                            System.out.println("[INFO] " +  "Your Pixelcade LCD Host Name changed, pairing to new host name: " + Pixelcades.get(i));
+                            if (!CliPixel.getSilentMode()) System.out.println("[INFO] " +  "Your Pixelcade LCD Host Name changed, pairing to new host name: " + Pixelcades.get(i));
                             LogMe.aLogger.info("[INFO] " +  "Your Pixelcade LCD Host Name changed, pairing to new host name: " + Pixelcades.get(i));
                             
                             pairingAPIResult_ = PairingAPICall(Pixelcades.get(i),"message",":8080/v2/utility/pairing/set/on");
                             
-                            System.out.println("[PAIRED] " + Pixelcades.get(i)); 
+                            if (!CliPixel.getSilentMode()) System.out.println("[PAIRED] " + Pixelcades.get(i)); 
                             LogMe.aLogger.info("[PAIRED] " + Pixelcades.get(i)); 
                             
                             try {
                             host = InetAddress.getByName(Pixelcades.get(i));
-                            System.out.println(host.getHostAddress());
+                            if (!CliPixel.getSilentMode()) System.out.println(host.getHostAddress());
                             LogMe.aLogger.info(host.getHostAddress());
                             } catch (UnknownHostException ex) {
                                 ex.printStackTrace();
@@ -181,9 +181,9 @@ public class lcdfinder implements ServiceListener {
                             writeSettingsINI(Pixelcades.get(i),host.getHostAddress()); //let's update settings.ini so the user saves time on the next run
                         }
                         else {
-                            System.out.println("[INFO] " +  "A different Pixelcade LCD was discovered on your network: " + Pixelcades.get(i));
+                            if (!CliPixel.getSilentMode()) System.out.println("[INFO] " +  "A different Pixelcade LCD was discovered on your network: " + Pixelcades.get(i));
                             LogMe.aLogger.info("[INFO] " +  "A different Pixelcade LCD was discovered on your network: " + Pixelcades.get(i));
-                            System.out.println("[ACTION] " +  "Please run the Pixelcade LCD Pairing Utility to switch to this LCD");
+                            if (!CliPixel.getSilentMode()) System.out.println("[ACTION] " +  "Please run the Pixelcade LCD Pairing Utility to switch to this LCD");
                             LogMe.aLogger.info("[ACTION] " +  "Please run the Pixelcade LCD Pairing Utility to switch to this LCD");
                         }
                     }
@@ -402,7 +402,7 @@ public class lcdfinder implements ServiceListener {
              sec.put("LCDMarqueeHostName", selectedPixelcadeHost);
              sec.put("LCDMarquee", "yes");
              ini.store();
-             System.out.println("Pixelcade LCD host name [" + selectedPixelcadeHost + "] written to settings.ini");
+             if (!CliPixel.getSilentMode()) System.out.println("Pixelcade LCD host name [" + selectedPixelcadeHost + "] written to settings.ini");
              LogMe.aLogger.info("Pixelcade LCD host name [" + selectedPixelcadeHost + "] written to settings.ini");
             } catch (IOException ex) {
                 Logger.getLogger(lcdfinder.class.getName()).log(Level.SEVERE, null, ex);
@@ -413,7 +413,7 @@ public class lcdfinder implements ServiceListener {
               sec.add("LCDMarqueeHostName", selectedPixelcadeHost);
               sec.add("LCDMarquee", "yes");
               ini.store();
-              System.out.println("Pixelcade LCD host name [" + selectedPixelcadeHost + "] written to settings.ini");
+              if (!CliPixel.getSilentMode()) System.out.println("Pixelcade LCD host name [" + selectedPixelcadeHost + "] written to settings.ini");
               LogMe.aLogger.info("Pixelcade LCD host name [" + selectedPixelcadeHost + "] written to settings.ini");
             } catch (IOException ex) {
                 Logger.getLogger(lcdfinder.class.getName()).log(Level.SEVERE, null, ex);
@@ -424,7 +424,7 @@ public class lcdfinder implements ServiceListener {
              //if this key is already there
              sec.put("LCDMarqueeIPAddress", selectedPixelcadeIP);
              ini.store();
-             System.out.println("Pixelcade LCD IP Address [" + selectedPixelcadeIP + "] written to settings.ini");
+             if (!CliPixel.getSilentMode()) System.out.println("Pixelcade LCD IP Address [" + selectedPixelcadeIP + "] written to settings.ini");
              LogMe.aLogger.info("Pixelcade LCD IP Address [" + selectedPixelcadeIP + "] written to settings.ini");
             } catch (IOException ex) {
                 Logger.getLogger(lcdfinder.class.getName()).log(Level.SEVERE, null, ex);
@@ -434,7 +434,7 @@ public class lcdfinder implements ServiceListener {
               //the key wasn't there so let's add it
               sec.add("LCDMarqueeIPAddress", selectedPixelcadeIP);
               ini.store();
-              System.out.println("Pixelcade LCD IP Address [" + selectedPixelcadeIP + "] written to settings.ini");
+              if (!CliPixel.getSilentMode()) System.out.println("Pixelcade LCD IP Address [" + selectedPixelcadeIP + "] written to settings.ini");
               LogMe.aLogger.info("Pixelcade LCD IP Address [" + selectedPixelcadeIP + "] written to settings.ini");
             } catch (IOException ex) {
                 Logger.getLogger(lcdfinder.class.getName()).log(Level.SEVERE, null, ex);
@@ -443,7 +443,7 @@ public class lcdfinder implements ServiceListener {
          
         }
         else {
-             System.out.println("[ERROR] Could not load settings.ini");
+             if (!CliPixel.getSilentMode()) System.out.println("[ERROR] Could not load settings.ini");
              LogMe.aLogger.info("[ERROR] Could not load settings.ini");
         }
     }

@@ -9,8 +9,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.WordUtils;
+//import org.apache.commons.lang3.StringUtils;
 import org.onebeartoe.network.TextHttpHandler;
 import org.onebeartoe.pixel.LogMe;
+import org.onebeartoe.web.enabled.pixel.CliPixel;
 import org.onebeartoe.web.enabled.pixel.WebEnabledPixel;
 import static org.onebeartoe.web.enabled.pixel.WebEnabledPixel.getLCDMarqueeHostName;
 
@@ -81,16 +83,30 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
                         WebEnabledPixel.dxEnvironment = true;
                         //if it's a console call, let's re-direct to arcade because pixelcade embedded doesn't know about the console calls
                         if (requestURI.getPath().contains("console")) {
-                             System.out.println("Request Console Redirected: " + requestURI.getPath());
-                             String consoleName = (requestURI.getPath().substring(requestURI.getPath().lastIndexOf("/") + 1)).toLowerCase();
-                             consoleName = consoleName.replace(" ", "_"); //had to add this one as Dennis made change to send native console names with no more _
+                           if (!CliPixel.getSilentMode()) System.out.println("Request Console Redirected: " + requestURI.getPath());
+                           
+                           String consoleName = "";
+                           String urlPath = requestURI.getPath().toString();
+                           String lastchar = (requestURI.getPath().substring(requestURI.getPath().length() - 1));
+                            // on linux, it's /console/stream/atari2600/
+                            //on pc, it's /console/stream/Atari 2600  
+                           if (lastchar.charAt(0) == '/') { 
+                               urlPath = removeLastChar(urlPath);
+                           }
+                           consoleName = (urlPath.substring(urlPath.lastIndexOf("/") + 1)).toLowerCase(); //get the last part of the string
+                           consoleName = consoleName.replace(" ", "_"); //had to add this one as Dennis made change to send native console names with no more _
+                           
+                           consoleNameExtension = FilenameUtils.getExtension(consoleName);
                              
-                             consoleNameExtension = FilenameUtils.getExtension(consoleName);
-                             
-                             if (!consoleName.equals("black")) {  
-                                if (arcadeNameExtension.isEmpty()) {  //if its empty, then we need to add the extension
+                            if (!consoleName.equals("black")) { 
+                                //if (arcadeNameExtension.isEmpty()) {  //if its empty, then we need to add the extension
+                                if (consoleNameExtension.isEmpty()) {  //if its empty, then we need to add the extension    
                                        redirect = "/arcade/stream/default/" + consoleName + ".jpg"; //made this change so users can maintain console artwork in one place
-                                       //redirect = "/arcade/stream/mame/" + consoleName + ".jpg";
+                                       if (!CliPixel.getSilentMode()) {
+                                            System.out.println("yoyo");
+                                            System.out.println(redirect);
+                                       }
+                                        //redirect = "/arcade/stream/mame/" + consoleName + ".jpg";
                                        //redirect = "/console/stream/" + consoleName + ".jpg";  //this may break on Pi LCD as it doesn't accept console
                                 }
                                 else {  //there is already an extension so no need to add an additional one
@@ -98,7 +114,6 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
                                        //redirect = "/arcade/stream/mame/" + consoleName;
                                        //redirect = "/console/stream/" + consoleName + ".jpg";
                                 }
-
                                 //String redirect = "/console/stream/" + consoleName + ".jpg";
                                 URL url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + redirect);
                                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -197,6 +212,10 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
             {
                 imageClassPath = requestURI.toString(); //this returns /arcade/stream/mame/pacman?t=1?c=2?r=5
             }
+            else if( path.contains("/achievements/"))
+            {
+                imageClassPath = requestURI.toString(); //this returns /arcade/stream/mame/pacman?t=1?c=2?r=5
+            }
             else if( path.contains("/pinball/"))
             {
                 imageClassPath = requestURI.toString(); //this returns /arcade/stream/mame/pacman?t=1?c=2?r=5
@@ -246,11 +265,24 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
         }
         finally
         {
-            return "REST call received for " + imageClassPath;
+            if (!CliPixel.getSilentMode()) {
+                return "REST call received for " + imageClassPath;
+            }
+            else {
+                return "";
+            }
         }
     }
     
-  
+ boolean isBlankString(String string) {
+    return string == null || string.trim().isEmpty();
+}
+ 
+ public static String removeLastChar(String s) {
+    return (s == null || s.length() == 0)
+      ? null 
+      : (s.substring(0, s.length() - 1));
+}
     
     protected abstract void writeImageResource(String imageClassPath) throws IOException, ConnectionLostException;
             

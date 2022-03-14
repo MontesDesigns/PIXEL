@@ -95,7 +95,7 @@ public class ScrollingTextHttpHander extends TextHttpHandler  //TO DO have TextH
             try {
                if (InetAddress.getByName(getLCDMarqueeHostName()).isReachable(5000)){
                    WebEnabledPixel.dxEnvironment = true;
-                   System.out.println("Requested: " + requestURI.getPath());
+                   if (!CliPixel.getSilentMode()) System.out.println("Requested: " + requestURI.getPath());
                 
 //                   //but we first need to check if there is a game param and if so add an extension if not there as LCD needs that extension
 //                   String gameName = null;
@@ -397,7 +397,11 @@ public class ScrollingTextHttpHander extends TextHttpHandler  //TO DO have TextH
 //            //lcdDisplay.scrollText(text_, new Font(font_, Font.PLAIN, 288), color, 40); //int speed
 //    }
         
-    return "scrolling text request received: " + text_ ;
+    if (!CliPixel.getSilentMode()) {
+        return "scrolling text request received: " + text_ ;
+    } else {
+        return null;
+    }
     
     }
     

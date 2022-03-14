@@ -14,6 +14,7 @@ import com.sun.syndication.io.XmlReader;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
+import org.onebeartoe.web.enabled.pixel.CliPixel;
 //import org.onebeartoe.pixel.PixelEnvironment;
 //import org.onebeartoe.pixel.hardware.Pixel;
 //import org.onebeartoe.web.enabled.pixel.WebEnabledPixel;
@@ -110,7 +111,7 @@ public class FeedReader {
                     // app.getPixel().scrollText("hi there yo you yo", 1, 10, Color.red, true, 1);
                 //   ScrollingTextHttpHandlerBasic.scroll("hello",1,Color.red);
 
-                   System.out.println(((SyndEntryImpl) o).getTitle());
+                   if (!CliPixel.getSilentMode()) System.out.println(((SyndEntryImpl) o).getTitle());
                     //SyndEntryImpl) o).getTitle()
                 }
                 
@@ -129,15 +130,17 @@ public class FeedReader {
             }
             catch (Exception ex) {
                 ex.printStackTrace();
-                System.out.println("ERROR: "+ex.getMessage());
+                if (!CliPixel.getSilentMode()) System.out.println("ERROR: "+ex.getMessage());
             }
         //}
 
         if (!ok) {
-            System.out.println();
-            System.out.println("FeedReader reads and prints any RSS/Atom feed type.");
-            System.out.println("The first parameter must be the URL of the feed to read.");
-            System.out.println();
+            if (!CliPixel.getSilentMode())  {
+                System.out.println();
+                System.out.println("FeedReader reads and prints any RSS/Atom feed type.");
+                System.out.println("The first parameter must be the URL of the feed to read.");
+                System.out.println();
+            }
         }
         
         
@@ -173,14 +176,16 @@ public class FeedReader {
             }
             catch (Exception ex) {
                 ex.printStackTrace();
-                System.out.println("ERROR: "+ex.getMessage());
+                if (!CliPixel.getSilentMode()) System.out.println("ERROR: "+ex.getMessage());
             }
         //}
 
         if (!ok) {
-            System.out.println();
-            System.out.println("[ERROR] Could not read RSS feed");
-            System.out.println();
+            if (!CliPixel.getSilentMode())  {
+                System.out.println();
+                System.out.println("[ERROR] Could not read RSS feed");
+                System.out.println();
+            }
         }
         
         return headLinesArray;

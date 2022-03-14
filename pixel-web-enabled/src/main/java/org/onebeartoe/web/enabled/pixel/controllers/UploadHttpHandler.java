@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.eh.core.model.FileInfo;
 import org.eh.core.util.FileUploadContentAnalysis;
+import org.onebeartoe.web.enabled.pixel.CliPixel;
 import org.onebeartoe.web.enabled.pixel.WebEnabledPixel;
 
 /**
@@ -37,7 +38,7 @@ public class UploadHttpHandler implements HttpHandler//extends TextHttpHandler
 
     protected String handleUpload(HttpExchange httpExchange)
     {
-        System.out.println("request reviced");
+        if (!CliPixel.getSilentMode()) System.out.println("request reviced");
 
         Headers headers = httpExchange.getRequestHeaders();
         // get ContentType

@@ -388,7 +388,7 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
        // let's first check if there is a ( and if so , we'll take what is to the left
        // So here's our logic for the gifs, let's first check if arcadenameonly_03 exists and if so we'll take that and then increment down to arcadenameonly_02 for the next one
        
-      
+        
         int iend = arcadeNameOnly.indexOf("("); //this finds the first occurrence of "(" 
         //in string thus giving you the index of where it is in the string
 
@@ -499,9 +499,9 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
 
                   } else {
 
-                      if (!CliPixel.getSilentMode()) {
-                      System.out.println("GIF default console LED Marquee file not found, looking for default marquee: " + consoleFilePathGIF);
-                      LogMe.aLogger.info("GIF default console LED Marquee file not found, looking for default marquee: " + consoleFilePathGIF);
+                    if (!CliPixel.getSilentMode()) {
+                        System.out.println("GIF default console LED Marquee file not found, looking for default marquee: " + consoleFilePathGIF);
+                        LogMe.aLogger.info("GIF default console LED Marquee file not found, looking for default marquee: " + consoleFilePathGIF);
                     } 
                     defaultConsoleFilePathPNG = pixelHome + "console/default-marquee.png";
                     File defaultConsoleFilePNG = new File(defaultConsoleFilePathPNG);
@@ -527,12 +527,14 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
        
         if (arcadeFilePNG.exists() && !arcadeFilePNG.isDirectory() && arcadeFileGIF.exists() && !arcadeFileGIF.isDirectory()) {  //if there is both a png and a gif, we'll play gif and then png
             
-             if (WebEnabledPixel.isUnix() && !WebEnabledPixel.isEmuELEC()) { //this is a quick hack and breaks the Q on Pi but on EmuELEC we can add the extra scroll event params so let's not do the hack there
-                        handlePNG(arcadeFilePNG, Boolean.valueOf(false), 0, "black", "nodata");
-                        handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), 1); //send the gif with a loop
-                        handlePNG(arcadeFilePNG, Boolean.valueOf(saveAnimation), 99999, consoleNameMapped, arcadeNameOnlyPNG + ".png");
-             }
-             else {
+               // Removed this Hack as of Jan 2022 when switching RetroPie over to the scripting engine
+               
+//             if (WebEnabledPixel.isUnix() && !WebEnabledPixel.isEmuELEC() && !WebEnabledPixel.isBotacera()) { //this is a quick hack and breaks the Q on Pi but on EmuELEC we can add the extra scroll event params so let's not do the hack there
+//                        handlePNG(arcadeFilePNG, Boolean.valueOf(false), 0, "black", "nodata");
+//                        handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), 1); //send the gif with a loop
+//                        handlePNG(arcadeFilePNG, Boolean.valueOf(saveAnimation), 99999, consoleNameMapped, arcadeNameOnlyPNG + ".png");
+//             }
+//             else {
 
             //original code which wasn't working with the Q and high scores for example
             //handlePNG(arcadeFilePNG, Boolean.valueOf(false), 0, "black", "nodata");
@@ -561,7 +563,7 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
                   handleGIFCycle(consoleNameMapped, arcadeNameOnly + ".gif", false, loop_,true,text_,loop_,speed,color,scrollsmooth_);
                 }
                 else {
-                  System.out.println("[ERROR] The cycle param must also have text specified");
+                   if (!CliPixel.getSilentMode()) System.out.println("[ERROR] The cycle param must also have text specified");
                 }
 
             }
@@ -569,7 +571,7 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
                  handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), loop_); //send the gif with a loop
                  handlePNG(arcadeFilePNG, Boolean.valueOf(saveAnimation), 99999, consoleNameMapped, arcadeNameOnlyPNG + ".png"); //send the PNG with 99999 so stays on the PNG, changed to arcadeNameOnlyPNG as the GIF can now be different with the animation versions
             }
-           }
+           //}
 
             //to do known issue here in that if scrolling through front end and one with gif and png are selected back to back, the second one won't interrupt and must complete before the next
         
@@ -590,7 +592,7 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
                       handleGIFCycle(consoleNameMapped, arcadeNameOnly + ".gif", false, loop_,true,text_,loop_,speed,color,scrollsmooth_);
                     }
                     else {
-                      System.out.println("[ERROR] The cycle param must also have text specified");
+                      if (!CliPixel.getSilentMode()) System.out.println("[ERROR] The cycle param must also have text specified");
                     }
 
                 } else {
@@ -644,8 +646,10 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
               } 
       } 
     } else {
-      System.out.println("[ERROR] URL format incorect, use http://localhost:8080/arcade/<stream or write>/<platform name>/<game name .gif or .png>");
-      System.out.println("Example: http://localhost:8080/arcade/write/mame/pacman.png or http://localhost:8080/arcade/stream/atari2600/digdug.gif");
+      if (!CliPixel.getSilentMode()) {
+        System.out.println("[ERROR] URL format incorect, use http://localhost:8080/arcade/<stream or write>/<platform name>/<game name .gif or .png>");
+        System.out.println("Example: http://localhost:8080/arcade/write/mame/pacman.png or http://localhost:8080/arcade/stream/atari2600/digdug.gif");
+      }
       LogMe.aLogger.severe("[ERROR] URL format incorect, use http://localhost:8080/arcade/<stream or write>/<platform name>/<game name .gif or .png>");
       LogMe.aLogger.severe("Example: http://localhost:8080/arcade/write/mame/pacman.png or http://localhost:8080/arcade/stream/atari2600/digdug.gif");
       
@@ -688,9 +692,11 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
     } catch (IOException ex) {
         Logger.getLogger(ArcadeHttpHandler.class.getName()).log(Level.SEVERE, null, ex);
     }
-    System.out.println("Red: " + LEDStripRed);
-    System.out.println("Green: " + LEDStripGreen);
-    System.out.println("Blue: " + LEDStripBlue);
+    if (!CliPixel.getSilentMode()) {
+        System.out.println("Red: " + LEDStripRed);
+        System.out.println("Green: " + LEDStripGreen);
+        System.out.println("Blue: " + LEDStripBlue);
+    }
     WebEnabledPixel.setLEDStripColor(LEDStripRed, LEDStripGreen, LEDStripBlue);
 }
            
@@ -726,7 +732,7 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
 
         if (!iter.hasNext())
         {
-            System.out.println("Cannot load the specified file "+ file);
+            if (!CliPixel.getSilentMode()) System.out.println("Cannot load the specified file "+ file);
             System.exit(1);
         }
         ImageReader imageReader = (ImageReader)iter.next();
@@ -755,7 +761,7 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
             }
         }        
         String colourRGB = getMostCommonColour(m);
-        System.out.println("most common color is: " + colourRGB);
+        if (!CliPixel.getSilentMode()) System.out.println("most common color is: " + colourRGB);
   }
   
 //  public static String getMostCommonColour(Map map) {

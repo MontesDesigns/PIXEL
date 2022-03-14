@@ -82,6 +82,7 @@ import org.onebeartoe.web.enabled.pixel.controllers.UpdateHttpHandler;
 import org.onebeartoe.web.enabled.pixel.controllers.RebootHttpHandler;
 import org.onebeartoe.web.enabled.pixel.controllers.CurrentGameHttpHandler;
 import org.onebeartoe.web.enabled.pixel.controllers.TickerHttpHandler;
+import org.onebeartoe.web.enabled.pixel.controllers.AchievementsHttpHandler;
 
 import org.onebeartoe.web.enabled.pixel.controllers.FeedReader;
 
@@ -102,7 +103,7 @@ public class WebEnabledPixel  {
     
   public static boolean dxEnvironment = true;
   
-  public static String pixelwebVersion = "4.3.3";
+  public static String pixelwebVersion = "4.4.2";
   
   public static LogMe logMe = null;
   
@@ -178,6 +179,8 @@ public class WebEnabledPixel  {
   
   private static String lcdMarquee_ = "no";
   
+  private static String verbose_ = "yes";
+  
   private static String lcdMarqueeHostName_ = "pixelcadedx.local";
   
   private static String lcdMarqueeIPAddress = "";
@@ -234,8 +237,10 @@ public class WebEnabledPixel  {
   private static boolean isMister_ = isPathValid("/media/fat/Scripts");  //had to change to this as when adding pixelcade to startup , the environment path is not yet set so the above call will fail
   
   private static boolean isEmuelec_ = isPathValid("/emuelec");  //had to change to this as when adding pixelcade to startup , the environment path is not yet set so the above call will fail
+   
+  private static boolean isBotacera_ = isPathValid("/userdata/system/configs/emulationstation");
   
-  //for LED Strip
+//for LED Strip
   
   public RGB[] frame_ = null;
   
@@ -340,10 +345,7 @@ public class WebEnabledPixel  {
     aluInitMode_ = CliPixel.getALUInitMode();
     logMe = LogMe.getInstance();
     
-    if (!silentMode_) {
-      LogMe.aLogger.info("Pixelcade Listener (pixelweb) Version " + pixelwebVersion);
-      System.out.println("Pixelcade Listener (pixelweb) Version " + pixelwebVersion);
-    }      
+   
     
 //    Map<String, String> map = System.getenv();  //shows the env variables available to us
 //    map.entrySet().forEach(System.out::println);
@@ -360,15 +362,15 @@ public class WebEnabledPixel  {
     if (isWindows()) {
           pixelHome = System.getProperty("user.dir") + File.separator;  //user dir is the folder where pixelweb.jar lives and would be placed there by the windows installer
     } else if (isALU){   
-            System.out.println("ALU Detected");
+            if (!silentMode_) System.out.println("ALU Detected");
             pixelHome = "/opt/pixelcade/";
     }
       else if (isMister_) {
-            System.out.println("MiSTer Detected");
+            if (!silentMode_) System.out.println("MiSTer Detected");
             pixelHome = "/media/fat/pixelcade/";
     }
       else if (isEmuelec_) {
-            System.out.println("Emuelec Detected");
+            if (!silentMode_) System.out.println("Emuelec Detected");
             pixelHome = "/storage/roms/pixelcade/";
       }
     
@@ -387,10 +389,42 @@ public class WebEnabledPixel  {
       } 
       Profile.Section sec = (Profile.Section)ini.get("PIXELCADE SETTINGS");
       this.ledResolution_ = (String)sec.get("ledResolution");
+      
+       if (sec.containsKey("verbose")) {
+        verbose_ = (String)sec.get("verbose");
+      } else {
+        sec.add("verbose", "yes");
+        sec.add("verbose_OPTION", "yes");
+        sec.add("verbose_OPTION", "no");
+        ini.store();
+      } 
+      
+      if (CliPixel.getSilentMode()) {   //-s takes priority
+          silentMode_ = true;
+          CliPixel.setSilentMode(true);
+      } 
+      else {                            // if no -s , then let's see the settings.ini says to do
+            if (verbose_.equals("no")) {
+              silentMode_ = true;
+              CliPixel.setSilentMode(true);
+            }
+      
+            if (verbose_.equals("yes")) {
+                silentMode_ = false;
+                CliPixel.setSilentMode(false);
+            }
+      }
+      
+      if (!silentMode_) {
+        LogMe.aLogger.info("Pixelcade Listener (pixelweb) Version " + pixelwebVersion);
+        System.out.println("Pixelcade Listener (pixelweb) Version " + pixelwebVersion);
+      }   
+      
+      
       if (sec.containsKey("playLastSavedMarqueeOnStartup")) {
         this.playLastSavedMarqueeOnStartup_ = (String)sec.get("playLastSavedMarqueeOnStartup");
       } else {
-        System.out.println("Creating key in settings.ini : playLastSavedMarqueeOnStartup");
+        if (!silentMode_) System.out.println("Creating key in settings.ini : playLastSavedMarqueeOnStartup");
         sec.add("playLastSavedMarqueeOnStartup", "yes");
         sec.add("playLastSavedMarqueeOnStartup_OPTION", "yes");
         sec.add("playLastSavedMarqueeOnStartup_OPTION", "no");
@@ -990,6 +1024,10 @@ public class WebEnabledPixel  {
     pixelEnvironment = new PixelEnvironment(LED_MATRIX_ID);
     MATRIX_TYPE = pixelEnvironment.LED_MATRIX;
     pixel = new Pixel(pixelEnvironment.LED_MATRIX, pixelEnvironment.currentResolution);
+    
+    pixel.setSilentMode(silentMode_);  //on pi, some folks didn't want to see console output
+    
+    
     switch (LED_MATRIX_ID) {
       case 11:
         speed_ = 38;
@@ -1045,11 +1083,11 @@ public class WebEnabledPixel  {
           rom2NameMap.put(key, value);
           continue;
         } 
-        System.out.println("ignoring line in mame.csv: " + line);
+        if (!silentMode_) System.out.println("ignoring line in mame.csv: " + line);
       } 
       reader.close();
     } else {
-      System.out.println("mame.csv not found");
+      if (!silentMode_) System.out.println("mame.csv not found");
     } 
     File consolefile = new File("console.csv");
     if (consolefile.exists() && !consolefile.isDirectory()) {
@@ -1065,11 +1103,11 @@ public class WebEnabledPixel  {
           consoleMap.put(key, value);
           continue;
         } 
-        System.out.println("ignoring line in console.csv: " + line);
+        if (!silentMode_) System.out.println("ignoring line in console.csv: " + line);
       } 
       reader.close();
     } else {
-      System.out.println("console.csv not found");
+      if (!silentMode_) System.out.println("console.csv not found");
     } 
     File gameMetaData_ = new File("gamemetadata.csv");
     if (gameMetaData_.exists() && !gameMetaData_.isDirectory()) {
@@ -1085,11 +1123,11 @@ public class WebEnabledPixel  {
           gameMetaDataMap.put(key, value);
           continue;
         } 
-        System.out.println("ignoring line in gamemetadata.csv: " + line);
+        if (!silentMode_) System.out.println("ignoring line in gamemetadata.csv: " + line);
       } 
       reader.close();
     } else {
-      System.out.println("gamemetadata.csv not found");
+      if (!silentMode_) System.out.println("gamemetadata.csv not found");
     } 
     File consoleMetaData_ = new File("consolemetadata.csv");
     if (consoleMetaData_.exists() && !consoleMetaData_.isDirectory()) {
@@ -1105,17 +1143,17 @@ public class WebEnabledPixel  {
           consoleMetaDataMap.put(key, value);
           continue;
         } 
-        System.out.println("ignoring line in consolemetadata.csv: " + line);
+        if (!silentMode_) System.out.println("ignoring line in consolemetadata.csv: " + line);
       } 
       reader.close();
     } else {
-      System.out.println("consolemetadata.csv not found");
+      if (!silentMode_) System.out.println("consolemetadata.csv not found");
     }
 
     if (lcdMarquee_.equals("yes")) {
        
         if (LCDSearchStartUpDelay_ != 0) {  //because Pixelcade LCD may still be booting up while the arcade computer has already booted, hence this delay
-            System.out.println("LCD Search will begin in " + LCDSearchStartUpDelay_ + " seconds...");
+            if (!silentMode_) System.out.println("LCD Search will begin in " + LCDSearchStartUpDelay_ + " seconds...");
             LogMe.aLogger.info("LCD Search will begin in " + LCDSearchStartUpDelay_ + " seconds...");
             TimerTask task = new TimerTask() {
             public void run() {
@@ -1137,13 +1175,13 @@ public class WebEnabledPixel  {
               Font temp = Font.createFont(Font.TRUETYPE_FONT, new FileInputStream(pixelHome + "fonts/" + defaultFont + ".ttf"));
               lcdDisplay.setLCDFont(temp.deriveFont(244f),defaultFont + ".ttf");
             }catch (FontFormatException|IOException| NullPointerException e){
-              System.out.println("Could not set lcd font from: " + pixelHome + "fonts/" + defaultFont + ".ttf" +" :(...\n");
+              if (!silentMode_) System.out.println("Could not set lcd font from: " + pixelHome + "fonts/" + defaultFont + ".ttf" +" :(...\n");
         }
     }
              
     
     if (this.SubDisplayAccessory_.equals("yes")) {
-      System.out.println("Attempting to connect to Pixelcade Sub Display Accessory...");
+      if (!silentMode_) System.out.println("Attempting to connect to Pixelcade Sub Display Accessory...");
       arduino1MatrixPort = SerialPort.getCommPort(this.SubDisplayAccessoryPort_);
       arduino1MatrixPort.setComPortTimeouts(4096, 0, 0);
       arduino1MatrixPort.setBaudRate(57600);
@@ -1224,7 +1262,7 @@ public class WebEnabledPixel  {
       else {  //ok didn't find so let's try using the IP address IF we have a valid IP
             if (validIP(lcdMarqueeIPAddress) && pingHost(lcdMarqueeIPAddress, 8080, 5000)) {  //if it's a valid IP and we can ping it, let's continue
                 setLCDMarqueeHostName(lcdMarqueeIPAddress);
-                System.out.println("[PIXELCADE LCD FOUND BY IP Address] Using IP Address " + lcdMarqueeIPAddress + " to reach Pixelcade LCD");
+                if (!silentMode_) System.out.println("[PIXELCADE LCD FOUND BY IP Address] Using IP Address " + lcdMarqueeIPAddress + " to reach Pixelcade LCD");
                 LogMe.aLogger.info("[PIXELCADE LCD FOUND BY IP Address] Using IP Address " + lcdMarqueeIPAddress + " to reach Pixelcade LCD");
                 LCDFound_ = true;
             }
@@ -1232,24 +1270,26 @@ public class WebEnabledPixel  {
                 
                  //BUT let's do a scan at this point and see if we can find it
                 
-                     System.out.println("Could not find LCD, let's use the LCD finder and see if we can find it via mdns");
+                     if (!silentMode_) System.out.println("Could not find LCD, let's use the LCD finder and see if we can find it via mdns");
                      LogMe.aLogger.info("Could not find LCD, let's use the LCD finder and see if we can find it via mdns");
                      lcdfinder LCDfinder_ = new lcdfinder();
                      LCDFound_ = LCDfinder_.getLCD(getLCDMarqueeHostName());
                      LCDSearchRanCounter++; 
                      
                     if (LCDFound_) {
-                        System.out.println("[PIXELCADE LCD FOUND via mDNS Search] " + getLCDMarqueeHostName());
+                        if (!silentMode_) System.out.println("[PIXELCADE LCD FOUND via mDNS Search] " + getLCDMarqueeHostName());
                         LogMe.aLogger.info("[PIXELCADE LCD FOUND via mDNS Search] " + getLCDMarqueeHostName());
                     } else {
-                        System.out.println("[WARNING] Pixelcade LCD is enabled but was not detected");
-                        System.out.println("[WARNING] This will slow down performance of Pixelcade LED so please");
-                        System.out.println("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD");
-                        LogMe.aLogger.info("[WARNING] Pixelcade LCD is enabled but was not detected");
-                        LogMe.aLogger.info("[WARNING] This will slow down performance of Pixelcade LED so please");
-                        LogMe.aLogger.info("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD");
-                        System.out.println("Please check network connectivity for Pixelcade LCD and then run the Pixelcade LCD Pairing Utility");
-                        LogMe.aLogger.info("Please check network connectivity for Pixelcade LCD and then run the Pixelcade LCD Pairing Utility");
+                        if (!silentMode_) {
+                            System.out.println("[WARNING] Pixelcade LCD is enabled but was not detected");
+                            System.out.println("[WARNING] This will slow down performance of Pixelcade LED so please");
+                            System.out.println("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD");
+                            LogMe.aLogger.info("[WARNING] Pixelcade LCD is enabled but was not detected");
+                            LogMe.aLogger.info("[WARNING] This will slow down performance of Pixelcade LED so please");
+                            LogMe.aLogger.info("[WARNING] turn off Pixelcade LCD in Pixelcade Settings if you don't have Pixelcade LCD");
+                            System.out.println("Please check network connectivity for Pixelcade LCD and then run the Pixelcade LCD Pairing Utility");
+                            LogMe.aLogger.info("Please check network connectivity for Pixelcade LCD and then run the Pixelcade LCD Pairing Utility");
+                        }
                     }
              }
        } 
@@ -1325,6 +1365,8 @@ public boolean isNumeric(String strNum) {
             HttpHandler currentGameHttpHandler = new CurrentGameHttpHandler();
             
             HttpHandler tickerHttpHandler = new TickerHttpHandler(this);
+            
+            HttpHandler achievementsHttpHandler = new AchievementsHttpHandler(this);
           
             
             // ARE WE GONNA DO ANYTHING WITH THE HttpContext OBJECTS?   
@@ -1347,6 +1389,7 @@ public boolean isNumeric(String strNum) {
                                             server.createContext("/console", consoleListHttpHandler);
                                             server.createContext("/localplayback",localModeHttpHandler);
                                             server.createContext("/ticker",tickerHttpHandler);
+                                            server.createContext("/achievements",achievementsHttpHandler);
             
             HttpContext pindmdContext =     server.createContext("/dmd", pindmdHttpHandler);
 
@@ -1374,7 +1417,7 @@ public boolean isNumeric(String strNum) {
         {
             //if we got here, most likely the pixel listener was already running so let's give a message and then exit gracefully
             
-             System.out.println(alreadyRunningErrorMsg);
+             if (!silentMode_) System.out.println(alreadyRunningErrorMsg);
              //System.out.println("Exiting...");
              
              // took this out as the pop up is no good when pinball dmdext also running as this interrupts
@@ -1447,7 +1490,7 @@ public static boolean validIP (String ip) {
     String GameMetaData = "";
     romName = romName.trim();
     romName = romName.toLowerCase();
-    System.out.println("ROM Name: " + romName);
+    if (!silentMode_) System.out.println("ROM Name: " + romName);
     LogMe.aLogger.info("ROM Name: " + romName);
     if (gameMetaDataMappingExists) {
       if (gameMetaDataMap.containsKey(romName)) {
@@ -1460,7 +1503,7 @@ public static boolean validIP (String ip) {
     } 
     if (GameMetaData.length() > 90)
       GameMetaData = GameMetaData.substring(0, Math.min(GameMetaData.length(), 90)); 
-    System.out.println("Game Metadata: " + GameMetaData);
+    if (!silentMode_) System.out.println("Game Metadata: " + GameMetaData);
     LogMe.aLogger.info("Game Metadata: " + GameMetaData);
     return GameMetaData;
   }
@@ -1469,7 +1512,7 @@ public static boolean validIP (String ip) {
     String ConsoleMetaData = "";
     console = console.trim();
     console = console.toLowerCase();
-    System.out.println("Console: " + console);
+    if (!silentMode_) System.out.println("Console: " + console);
     LogMe.aLogger.info("Console: " + console);
     if (consoleMetaDataMappingExists) {
       if (consoleMetaDataMap.containsKey(console)) {
@@ -1482,7 +1525,7 @@ public static boolean validIP (String ip) {
     } 
     if (ConsoleMetaData.length() > 90)
       ConsoleMetaData = ConsoleMetaData.substring(0, Math.min(ConsoleMetaData.length(), 90)); 
-    System.out.println("Game Metadata: " + ConsoleMetaData);
+    if (!silentMode_) System.out.println("Game Metadata: " + ConsoleMetaData);
     LogMe.aLogger.info("Game Metadata: " + ConsoleMetaData);
     return ConsoleMetaData;
   }
@@ -1497,7 +1540,7 @@ public static boolean validIP (String ip) {
       } 
     } else {
       ConsoleMapped = getConsoleNamefromMapping(originalConsole);
-      System.out.println("console.csv file NOT FOUND");
+      if (!silentMode_) System.out.println("console.csv file NOT FOUND");
       LogMe.aLogger.info("console.csv file NOT FOUND");
     } 
     return ConsoleMapped;
@@ -1517,6 +1560,10 @@ public static boolean validIP (String ip) {
   
   public static String getTextColor() {
     return textColor_;
+  }
+  
+  public static String getTickerTextColor() {
+    return tickerColor_;
   }
   
   public static String getTextScrollSpeed() {
@@ -1607,7 +1654,7 @@ public static boolean validIP (String ip) {
    }
    
     public static String getCurrentPlatformGame() {  //used by API to get current platform and game
-       String PlatformGame = currentPlatform + "," + currentGame;
+       String PlatformGame = currentPlatform + "%" + currentGame;
        return PlatformGame;
    }
   
@@ -1720,8 +1767,7 @@ public static boolean validIP (String ip) {
     Color color;
     if (isHexadecimal(ColorStr) && ColorStr.length() == 6) {
       color = hex2Rgb(ColorStr);
-      if (!CliPixel.getSilentMode())
-        System.out.println("Hex color value detected"); 
+        if (!silentMode_) System.out.println("Hex color value detected"); 
     } else {
       switch (ColorStr) {
         case "red":
@@ -1762,8 +1808,7 @@ public static boolean validIP (String ip) {
           return color;
       } 
       color = Color.RED;
-      if (!CliPixel.getSilentMode())
-        System.out.println("Invalid color, defaulting to red"); 
+        if (!silentMode_) System.out.println("Invalid color, defaulting to red"); 
     } 
     return color;
   }
@@ -1826,6 +1871,14 @@ public static boolean validIP (String ip) {
   
   public static boolean isEmuELEC() {
       return isEmuelec_; 
+  }
+  
+  public static boolean isBotacera() {
+      return isBotacera_; 
+  }
+  
+  public static boolean isSilentMode() {
+      return silentMode_;
   }
   
   public static void setLocalMode() {
@@ -2250,21 +2303,25 @@ public static boolean validIP (String ip) {
     return consoleNameMapped;
   }
   
-  public static void startTicker() {
+  public static void startTicker(Color color, Integer scrollspeed, Boolean explicitColor) {
        //  ************ text house keeping one time let's take care of 
-                if (tickerColor_ != null) {
-                    if (tickerColor_.equals("random")) 
-                        tickerColor = getRandomColor(); 
-                    else 
-                        tickerColor = getColorFromHexOrName(tickerColor_);
-                } 
-                else {
-                        tickerColor = Color.red;
-                } 
                 
-                String scrollSpeedSettings = WebEnabledPixel.getTextScrollSpeed();
-                scrollsmooth_ = WebEnabledPixel.getScrollingSmoothSpeed(scrollSpeedSettings);
+//                if (tickerColor_ != null) {
+//                    if (tickerColor_.equals("random")) 
+//                        tickerColor = getRandomColor(); 
+//                    else 
+//                        tickerColor = getColorFromHexOrName(tickerColor_);
+//                } 
+//                else {
+//                        tickerColor = Color.red;
+//                } 
+//                
+//                String scrollSpeedSettings = WebEnabledPixel.getTextScrollSpeed();
+//                scrollsmooth_ = WebEnabledPixel.getScrollingSmoothSpeed(scrollSpeedSettings);
                 
+                tickerColor = color;
+                scrollsmooth_ = scrollspeed;
+
                 int LED_MATRIX_ID = getMatrixID();
                 speed = Long.valueOf(getScrollingTextSpeed(LED_MATRIX_ID));
                 
@@ -2292,15 +2349,15 @@ public static boolean validIP (String ip) {
                 while (isTickerRunning == true) {   
                     
                     if (!feed1_.equals("none") && isTickerRunning == true)
-                        runTicker(feed1_);
+                        runTicker(feed1_,explicitColor);
                     if (!feed2_.equals("none") && isTickerRunning == true)
-                        runTicker(feed2_);
+                        runTicker(feed2_,explicitColor);
                     if (!feed3_.equals("none") && isTickerRunning == true)
-                        runTicker(feed3_);
+                        runTicker(feed3_,explicitColor);
                     if (!feed4_.equals("none") && isTickerRunning == true)
-                        runTicker(feed4_);
+                        runTicker(feed4_,explicitColor);
                     if (!feed5_.equals("none") && isTickerRunning == true)
-                        runTicker(feed5_);
+                        runTicker(feed5_,explicitColor);
                 }
             
   }
@@ -2319,12 +2376,12 @@ public static boolean validIP (String ip) {
                     return ok;
                 }
                
-    public static void runTicker(String tickerRSS) {
+    public static void runTicker(String tickerRSS, Boolean explicitColor) {
                 
                 //we need to make sure the RSS feed is valid
                 // to do don't send to LCD from here as LCD has no Q for scrolling text
                 // but look into sending ticker text from the Q itself to LCD as that will be timed as could then run on Pixelcade Dot
-                System.out.println("[TICKER] " + tickerRSS);
+                if (!silentMode_) System.out.println("[TICKER] " + tickerRSS);
                 if (isValidRSS(tickerRSS)) {
                     headlinesarray_ = (ArrayList<String>) FeedReader.getTitlesArray(tickerRSS);
 
@@ -2335,17 +2392,19 @@ public static boolean validIP (String ip) {
                             break;
                         }
                         
-                        if (alternateTickerColor == true) {  //by default this is off but if on, we can alternate color for each headline
-                            if (tickerColor_ != null) {
-                                if (tickerColor_.equals("random")) 
-                                    tickerColor = getRandomColor(); 
-                                else 
-                                    tickerColor = getColorFromHexOrName(tickerColor_);
-                            } 
-                            else {
-                                    tickerColor = Color.red;
-                            } 
-                        }
+                        if (explicitColor == false)  {  //if the color was not specifically specified in the API call, let's take from settings.ini. But if it was, then don't go here and keep the color that we got from the call
+                            if (alternateTickerColor == true) {  //by default this is off but if on, we can alternate color for each headline
+                                if (tickerColor_ != null) {
+                                    if (tickerColor_.equals("random")) 
+                                        tickerColor = getRandomColor(); 
+                                    else 
+                                        tickerColor = getColorFromHexOrName(tickerColor_);
+                                } 
+                                else {
+                                        tickerColor = Color.red;
+                                } 
+                            }
+                        }   
                         
                         pixel.scrollText(headlinesarray_.get(i), 1, speed, tickerColor, WebEnabledPixel.pixelConnected, scrollsmooth_);  //add to the scrolling text Q //scrollText(text_, loop, speed, color,WebEnabledPixel.pixelConnected,scrollsmooth_);
                         // note that since we are calling this direct from the pixel class, the LCD re-direct does not happen which is ok for now
@@ -2358,7 +2417,7 @@ public static boolean validIP (String ip) {
                     }
                 }
                 else {
-                    System.out.println("[ERROR] " + tickerRSS + " is not a valid URL or available");
+                    if (!silentMode_) System.out.println("[ERROR] " + tickerRSS + " is not a valid URL or available");
                     LogMe.aLogger.info("[ERROR] " + tickerRSS + " is not a valid URL or available");
                 }
                }
@@ -2367,8 +2426,7 @@ public static boolean validIP (String ip) {
   private class PixelIntegration extends IOIOConsoleApp {
     public PixelIntegration() {
       try {
-        if (!WebEnabledPixel.silentMode_)
-          System.out.println("PixelIntegration is calling go()"); 
+          if (!silentMode_) System.out.println("PixelIntegration is calling go()"); 
         go(null);
       } catch (Exception ex) {
         String message = "Could not initialize Pixel: " + ex.getMessage();
@@ -2399,7 +2457,7 @@ public static boolean validIP (String ip) {
             System.exit(1);
             continue;
           } 
-          System.out.println("Unknown input. q=quit.");
+          if (!silentMode_) System.out.println("Unknown input. q=quit.");
         } 
       } 
     }
@@ -2418,13 +2476,13 @@ public static boolean validIP (String ip) {
           
           public void disconnected() {
             String message = "PIXEL was Disconnected";
-            System.out.println(message);
+            if (!silentMode_) System.out.println(message);
             LogMe.aLogger.severe(message);
           }
           
           public void incompatible() {
             String message = "Incompatible Firmware Detected";
-            System.out.println(message);
+            if (!silentMode_) System.out.println(message);
             LogMe.aLogger.severe(message);
           }
           
@@ -2434,6 +2492,14 @@ public static boolean validIP (String ip) {
                 pixel = new Pixel(pixelEnvironment.LED_MATRIX, pixelEnvironment.currentResolution);
                 pixel.matrix = ioio_.openRgbLedMatrix(pixel.KIND);
                 pixel.ioiO = ioio_;  //TO DO is this really needed?
+                
+//                File arcadeFilePNG2 = new File(pixelHome + "system" + "/" + startupLEDMarqueeName_ + ".png");
+//              try {
+//                  pixel.scrollText("Happy Fourth of July!", 1, 10L, Color.cyan,WebEnabledPixel.pixelConnected,1);
+//                  pixel.writeArcadeImage(arcadeFilePNG2, false, 3, "mame","galaga" + ".png" ,WebEnabledPixel.pixelConnected);
+//              } catch (IOException ex) {
+//                  Logger.getLogger(WebEnabledPixel.class.getName()).log(Level.SEVERE, null, ex);
+//              }
                 
                 // ******** analog input testing ***********
                 
@@ -2460,37 +2526,37 @@ public static boolean validIP (String ip) {
               message.append("Found PIXEL: " + WebEnabledPixel.pixel.matrix + "\n");
             } 
             
-            message.append("You may now interact with PIXEL!\n");
+            //message.append("You may now interact with Pixelcade\n");
             message.append("LED matrix type is: " + WebEnabledPixel.LED_MATRIX_ID + "\n");
             WebEnabledPixel.this.searchTimer.cancel();
-            message.append("PIXEL Status: Connected");
+            message.append("Pixelcade Status: Connected");
             WebEnabledPixel.pixelConnected = true;
-            
-            if (!WebEnabledPixel.this.playLastSavedMarqueeOnStartup_.equals("no"))
-              WebEnabledPixel.pixel.playLocalMode(); 
-            
-            if (!WebEnabledPixel.pixel.PixelQueue.isEmpty()) {
-              WebEnabledPixel.pixel.doneLoopingCheckQueue(false);
-              if (!WebEnabledPixel.silentMode_) {
-                System.out.println("Processing Startup Queue Items...");
-                LogMe.aLogger.info("Processing Startup Queue Items...");
-              } 
-            } else if (!WebEnabledPixel.silentMode_) {
-              System.out.println("No Items in the Queue at Startup...");
-              LogMe.aLogger.info("No Items in the Queue at Startup...");
-            } 
             
             if (!WebEnabledPixel.silentMode_) {
               System.out.println(message);
               LogMe.aLogger.info(message.toString());
             }
             
+            if (!WebEnabledPixel.this.playLastSavedMarqueeOnStartup_.equals("no"))
+              WebEnabledPixel.pixel.playLocalMode(); 
+             
+            if (!WebEnabledPixel.pixel.PixelQueue.isEmpty()) {  //if the Q is not empty
+                WebEnabledPixel.pixel.doneLoopingCheckQueue(false);
+                if (!WebEnabledPixel.silentMode_) {
+                  System.out.println("Processing Startup Queue Items...");
+                  LogMe.aLogger.info("Processing Startup Queue Items...");
+                }
+            } else if (!WebEnabledPixel.silentMode_) {
+              System.out.println("No Items in the Queue at Startup...");
+              LogMe.aLogger.info("No Items in the Queue at Startup...");
+            } 
+            
             //if it's on , we can show a default marquee on pixelcade connect startup
             if (startupLEDMarquee_.equals("yes")) {
-                File arcadeFilePNG = new File(pixelHome + "mame" + "/" + startupLEDMarqueeName_ + ".png");
+                File arcadeFilePNG = new File(pixelHome + "system" + "/" + startupLEDMarqueeName_ + ".png");
                 if (arcadeFilePNG.exists() && !arcadeFilePNG.isDirectory()) {
                     try {
-                        pixel.writeArcadeImage(arcadeFilePNG, false, 99999, "mame",startupLEDMarqueeName_ + ".png" ,WebEnabledPixel.pixelConnected);
+                        pixel.writeArcadeImage(arcadeFilePNG, false, 99999, "system",startupLEDMarqueeName_ + ".png" ,WebEnabledPixel.pixelConnected);
                     } catch (IOException ex) {
                         Logger.getLogger(WebEnabledPixel.class.getName()).log(Level.SEVERE, null, ex);
                     }
@@ -2500,8 +2566,10 @@ public static boolean validIP (String ip) {
             if (isALU) {
             
                 if (aluInitMode_) {
-                     System.out.println("[Status]: ALU First Connect Successful");
-                     System.out.println("Stopped");
+                    if (!silentMode_) {
+                        System.out.println("[Status]: ALU First Connect Successful");
+                        System.out.println("Stopped");
+                     }        
                      System.exit(1);
                 }
 
@@ -2512,17 +2580,14 @@ public static boolean validIP (String ip) {
 
                 if (!aluInitMode_ && easterEggMode_)  {  //if this is the second ALU run and we are in easter egg mode
                     if (month == 7 && (day == 3 || day == 4)) {
-                            System.out.println("Fourth of July Easter Egg Match");
+                            if (!silentMode_) System.out.println("Fourth of July Easter Egg Match");
                             pixel.scrollText("Happy Fourth of July!", 1, 10L, Color.cyan,WebEnabledPixel.pixelConnected,1);
-
 
                         try {
                             pixel.writeArcadeAnimation("alu", "fireworks.gif", false, 10, WebEnabledPixel.pixelConnected);
                         } catch (NoSuchAlgorithmException ex) {
                             Logger.getLogger(WebEnabledPixel.class.getName()).log(Level.SEVERE, null, ex);
                         }
-
-
 
                     } else {
 
@@ -2538,7 +2603,7 @@ public static boolean validIP (String ip) {
                 } else {
                     if (!aluInitMode_) {  //this is the second run and we're not in easter egg mode
                         try {
-                            System.out.println("Welcome to Pixelcade");
+                            if (!silentMode_) System.out.println("Welcome to Pixelcade");
                             String logoConsoleFilePathPNG = WebEnabledPixel.pixelHome + "alu/default-alu.png";
                             File logoConsoleFilePNG = new File(logoConsoleFilePathPNG);
                             pixel.writeArcadeImage(logoConsoleFilePNG, false, 99999, "alu", "default-alu.png", WebEnabledPixel.pixelConnected);
@@ -2547,15 +2612,14 @@ public static boolean validIP (String ip) {
                         }
                     }
                 }
-            
             }
-            
             else {  //if not an ALU
-            
                 //may need this for the Raspberry Pi issue where first connect is not successful
                 if (aluInitMode_) {
-                         System.out.println("[Status]: First Connect Attempt");
-                         System.out.println("Exiting...");
+                        if (!silentMode_) {
+                            System.out.println("[Status]: First Connect Attempt");
+                            System.out.println("Exiting...");
+                        }
                          LogMe.aLogger.info("[Status]: First Connect Attempt");
                          LogMe.aLogger.info("Exiting...");
                          System.exit(1);
@@ -2565,7 +2629,17 @@ public static boolean validIP (String ip) {
            
             if (ticker_.equals("yes")) {  //only run ticker on startup if enabled but can also be run from API too
                 isTickerRunning = true;
-                startTicker();
+              
+                //get speed and color from settings.ini
+                String scrollSpeedSettings = WebEnabledPixel.getTextScrollSpeed();
+                scrollsmooth_ = WebEnabledPixel.getScrollingSmoothSpeed(scrollSpeedSettings);
+                if (WebEnabledPixel.getTickerTextColor().equals("random")) {
+                 color = WebEnabledPixel.getRandomColor();
+               } else {
+                 color = WebEnabledPixel.getColorFromHexOrName(WebEnabledPixel.getTickerTextColor());
+               } 
+                
+                startTicker(color, scrollsmooth_,false);
             }
 
             
@@ -2822,10 +2896,12 @@ public static boolean validIP (String ip) {
         FW_Hardware = firmwareString.substring(0, 4);
         HW_Version = firmwareString.substring(4, 8);
       } else {
-        System.out.println("Invalid firmware: " + firmwareString);
+        if (!silentMode_) System.out.println("Invalid firmware: " + firmwareString);
       } 
-      System.out.println("Sub Display Accessory Found with Plaform Firmware: " + FW_Hardware);
-      System.out.println("Sub Display Accessory Found with Version: " + HW_Version);
+      if (!silentMode_) {
+            System.out.println("Sub Display Accessory Found with Plaform Firmware: " + FW_Hardware);
+            System.out.println("Sub Display Accessory Found with Version: " + HW_Version);
+      }
       WebEnabledPixel.arduino1MatrixConnected = true;
     }
   }

@@ -39,7 +39,7 @@ public class UpdateHttpHandler extends TextHttpHandler
         
         if (WebEnabledPixel.isUnix()) {  
             
-            System.out.println("Received update command, now checking for updates...");
+            if (!CliPixel.getSilentMode()) System.out.println("Received update command, now checking for updates...");
             logMe.aLogger.info("Received update command, now checking for updates...");
             
             ProcessBuilder processBuilder = new ProcessBuilder();
@@ -110,7 +110,7 @@ public class UpdateHttpHandler extends TextHttpHandler
         } 
         else {
             returnMessage = "Sorry, update command only available on Raspberry Pi and Linux";
-            System.out.println(returnMessage);
+            if (!CliPixel.getSilentMode()) System.out.println(returnMessage);
             logMe.aLogger.info(returnMessage);
         }
         

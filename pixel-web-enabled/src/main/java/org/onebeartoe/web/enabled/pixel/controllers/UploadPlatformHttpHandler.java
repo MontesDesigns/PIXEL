@@ -99,7 +99,7 @@ public class UploadPlatformHttpHandler implements HttpHandler//extends TextHttpH
            
                 
             logMe.aLogger.info("upload file path: " + outpath2);
-            System.out.println("upload file path: " + outpath2);
+            if (!CliPixel.getSilentMode()) System.out.println("upload file path: " + outpath2);
             
             //********************************
             
@@ -107,7 +107,7 @@ public class UploadPlatformHttpHandler implements HttpHandler//extends TextHttpH
             {
                 issues.append("No file was posted with request, for param named: " + uploadKey);
                 logMe.aLogger.info("No file was posted with request, for param named: " + uploadKey);
-                System.out.println("No file was posted with request, for param named: " + uploadKey);
+                if (!CliPixel.getSilentMode()) System.out.println("No file was posted with request, for param named: " + uploadKey);
             }
             else
             {
@@ -126,7 +126,7 @@ public class UploadPlatformHttpHandler implements HttpHandler//extends TextHttpH
                 
                 if(PixelcadeConsole == null) {
                      logMe.aLogger.info("console was not passed, defaulting to mame");
-                     System.out.println("console was not passed, defaulting to mame");
+                     if (!CliPixel.getSilentMode()) System.out.println("console was not passed, defaulting to mame");
                      PixelcadeConsole = "mame";
                 }   
                 
@@ -135,7 +135,7 @@ public class UploadPlatformHttpHandler implements HttpHandler//extends TextHttpH
                 
                 if(displayNow == null) {
                      logMe.aLogger.info("displaynow was not passed, should be 1 to display now and 0 to not display now, defaulting to 0");
-                     System.out.println("displaynow was not passed, should be 1 to display now and 0 to not display now, defaulting to 0");
+                     if (!CliPixel.getSilentMode()) System.out.println("displaynow was not passed, should be 1 to display now and 0 to not display now, defaulting to 0");
                      displayNow = "0";
                 } 
                 
