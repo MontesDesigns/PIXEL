@@ -271,6 +271,8 @@ public class Pixel
     
     private static boolean silentMode_ = false;
     
+    private ScheduledExecutorService scrollTextService;
+    
     //private TimerTask animateTimer = new AnimateTimer();
     
     /**
@@ -719,7 +721,12 @@ public boolean GIFNeedsDecoding(String decodedDir, String gifName, int currentRe
 	decdoed path will be c:\animations\tree.gif\decoded\tree.rgb565 and tree.txt
 	*/
     
-	gifName = FilenameUtils.removeExtension(gifName); //with no extension
+	
+        String arcadeNameExtension = FilenameUtils.getExtension(gifName);
+        if (arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension if .png or .gif, changed as it was failing with files with two dots
+            gifName = FilenameUtils.removeExtension(gifName);
+        }
+        //gifName = FilenameUtils.removeExtension(gifName); //with no extension, removed this
 	
 	if (!silentMode_) System.out.println("PIXEL LED panel resolution is: " + currentResolution);
         logMe.aLogger.info("PIXEL LED panel resolution is: " + currentResolution);
@@ -762,7 +769,11 @@ public boolean GIFArcadeNeedsDecoding(String decodedDir, String gifName, int cur
 	MessageDigest md = MessageDigest.getInstance("MD5");
         String SelectedFileMD5_ = checksum(gifFilePath, md);
     
-	gifName = FilenameUtils.removeExtension(gifName); //with no extension
+	String arcadeNameExtension = FilenameUtils.getExtension(gifName);
+        if (arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension if .png or .gif, changed as it was failing with files with two dots
+            gifName = FilenameUtils.removeExtension(gifName);
+        }
+        //gifName = FilenameUtils.removeExtension(gifName); //with no extension removed this
 	
 	//System.out.println("PIXEL LED panel resolution is: " + currentResolution);
 	
@@ -812,9 +823,9 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 
  public String getDecodedmd5(String decodedDir, String gifName) {  //returns md5 of the target gif
  	
-	    String gifDecodedTxtPath = decodedDir + gifName + ".txt"; 
+	String gifDecodedTxtPath = decodedDir + gifName + ".txt"; 
 	    
-	    File filemeta = new File(gifDecodedTxtPath);
+	File filemeta = new File(gifDecodedTxtPath);
  	
  	FileInputStream decodedFile = null; //fix this
  	try {
@@ -856,8 +867,12 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
     
     public float getDecodedfps(String decodedDir, String gifName) {  //need to return the meta data
     	
-    	gifName = FilenameUtils.removeExtension(gifName); //with no extension, ex. tree instead of tree.gif
-    	//String gifNamePath = currentDir + "/decoded/" + gifName + ".txt"; 
+    	String arcadeNameExtension = FilenameUtils.getExtension(gifName);
+        if (arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension if .png or .gif, changed as it was failing with files with two dots
+            gifName = FilenameUtils.removeExtension(gifName);
+        }
+        //gifName = FilenameUtils.removeExtension(gifName); //with no extension, ex. tree instead of tree.gif removed this
+        
     	String gifNamePath = decodedDir + gifName + ".txt"; 
     	File filemeta = new File(gifNamePath);
     	
@@ -898,16 +913,14 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
     
     public int getDecodednumFrames(String decodedDir, String gifName) {  //need to return the meta data
     	
-    	//decodeddir is: userHome + "/pixel/animations/decoded/";  
     	
-    	
-    	gifName = FilenameUtils.removeExtension(gifName); //with no extension
-    	//String framestring = "animations/decoded/" + animation_name + ".rgb565";
-    	//String gifNamePath = gifName + ".txt";
-    	//String gifNamePath = currentDir + "/decoded/" + gifName + ".txt"; 
-    	
+    	String arcadeNameExtension = FilenameUtils.getExtension(gifName);
+        if (arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension if .png or .gif, changed as it was failing with files with two dots
+            gifName = FilenameUtils.removeExtension(gifName);
+        }
+        //gifName = FilenameUtils.removeExtension(gifName); //with no extension, removed this
+        
     	String gifNamePath = decodedDir + gifName + ".txt"; 
-    	
     	
     	File filemeta = new File(gifNamePath);    	
     	FileInputStream decodedFile = null; //fix this
@@ -940,12 +953,15 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 	}
     
  public int getDecodedresolution(String decodedDir, String gifName) {  //need to return the meta data
+     
+        String arcadeNameExtension = FilenameUtils.getExtension(gifName);
+        if (arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension if .png or .gif, changed as it was failing with files with two dots
+            gifName = FilenameUtils.removeExtension(gifName);
+        }
     	
-	    gifName = FilenameUtils.removeExtension(gifName); //with no extension
-	    //String framestring = "animations/decoded/" + animation_name + ".rgb565";
-	   // String gifNamePath = gifName + ".txt";
-	    //String gifNamePath = currentDir + "/decoded/" + gifName + ".txt"; 
-    	String gifNamePath = decodedDir + gifName + ".txt";  //arcade/mame/decoded/pacman.txt
+	//gifName = FilenameUtils.removeExtension(gifName); //with no extension , removed this as does not work when two periods in a file name
+        
+    	String gifNamePath = decodedDir + gifName + ".txt";  //arcade/mame/decoded/pacman.txt  fails on this Super Mario Bros. 3 (USA)
        
     	File filemeta = new File(gifNamePath);
     	
@@ -980,9 +996,12 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
     
     public int getDecodedframeDelay(String decodedDir, String gifName) {  //need to return the meta data
     	
-    	
-    	gifName = FilenameUtils.removeExtension(gifName); //with no extension
-    	//String gifNamePath = currentDir + "/decoded/" + gifName + ".txt"; 
+        String arcadeNameExtension = FilenameUtils.getExtension(gifName);
+        if (arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension if .png or .gif, changed as it was failing with files with two dots
+            gifName = FilenameUtils.removeExtension(gifName);
+        }
+        //gifName = removeFileExtension(gifName,false);
+        
     	String gifNamePath = decodedDir + gifName + ".txt"; 
     	
     	File filemeta = new File(gifNamePath);
@@ -1064,6 +1083,15 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
     }
     */
     
+    public static String removeFileExtension(String filename, boolean removeAllExtensions) {
+        if (filename == null || filename.isEmpty()) {
+            return filename;
+        }
+
+        String extPattern = "(?<!^)[.]" + (removeAllExtensions ? ".*" : "[^.]*$");
+        return filename.replaceAll(extPattern, "");
+    }
+    
     public void GetPixelDecodedFrameLast(String decodedDir, String gifName, int x, int selectedFileTotalFrames, int selectedFileResolution, int frameWidth, int frameHeight) 
     {
 //        BitmapBytesLast = new byte[frameWidth * frameHeight * 2]; //512 * 2 = 1024 or 1024 * 2 = 2048
@@ -1071,7 +1099,13 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         
         Arrays.fill(BitmapBytesLast, (byte)0); 
 		
-	gifName = FilenameUtils.removeExtension(gifName); //with no extension
+	String arcadeNameExtension = FilenameUtils.getExtension(gifName);
+        if (arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension if .png or .gif, changed as it was failing with files with two dots
+            gifName = FilenameUtils.removeExtension(gifName);
+        }
+        //gifName = FilenameUtils.removeExtension(gifName); //with no extension
+        
+        
     	String gifNamePath = decodedDir + gifName + ".rgb565";  //  ex. c:\animations\decoded\tree.rgb565
     	String gifname2 = gifName;
     	
@@ -1223,7 +1257,12 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         //BitmapBytes = new byte[frameWidth * frameHeight * 2]; //512 * 2 = 1024 or 1024 * 2 = 2048
         //frame_ = new short[frameWidth * frameHeight];
 		
-	gifName = FilenameUtils.removeExtension(gifName); //with no extension
+	//gifName = FilenameUtils.removeExtension(gifName); //with no extension
+        String arcadeNameExtension = FilenameUtils.getExtension(gifName);
+        if (arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension if .png or .gif, changed as it was failing with files with two dots
+            gifName = FilenameUtils.removeExtension(gifName);
+        }
+        
     	String gifNamePath = decodedDir + gifName + ".rgb565";  //  ex. c:\animations\decoded\tree.rgb565
     	String gifname2 = gifName;
     	
@@ -1414,7 +1453,12 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         BitmapBytes = new byte[frameWidth * frameHeight * 2]; //512 * 2 = 1024 or 1024 * 2 = 2048
         frame_ = new short[frameWidth * frameHeight];
 		
-	gifName = FilenameUtils.removeExtension(gifName); //with no extension
+	String arcadeNameExtension = FilenameUtils.getExtension(gifName);
+        if (arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension if .png or .gif, changed as it was failing with files with two dots
+            gifName = FilenameUtils.removeExtension(gifName);
+        }
+        //gifName = FilenameUtils.removeExtension(gifName); //with no extension
+        
     	String gifNamePath = decodedDir + gifName + ".rgb565";  //  ex. c:\animations\decoded\tree.rgb565
     	String gifname2 = gifName;
     
@@ -1819,7 +1863,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 //      }
 //    }
     
-     public void scrollText(String text, int loop, long speed, Color color, boolean pixelConnected, int scrollsmooth) {
+  public void scrollText(String text, int loop, long speed, Color color, boolean pixelConnected, int scrollsmooth) {
     if (!pixelConnected) {
       if (loop == 0)
         loop = 1; 
@@ -1985,7 +2029,8 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
           } 
         } 
       } else {
-        ScheduledExecutorService scrollTextService = Executors.newScheduledThreadPool(1);
+        //ScheduledExecutorService scrollTextService = Executors.newScheduledThreadPool(1);
+        scrollTextService = Executors.newScheduledThreadPool(1);
         this.futurescroll = scrollTextService.scheduleAtFixedRate(this.scollTextTask, 0L, this.scrollDelay, TimeUnit.MILLISECONDS);
         this.scrollingTextTimerRunningFlag.set(true);
       } 
@@ -2215,8 +2260,11 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 		//and then we will receive the gif accordingly as we decode
 		//we also need to get the original width and vuHeight of the gif which is easily done from the gif decoder class
 	//String str3 = new String(str1); 
-	    
-		 gifName = FilenameUtils.removeExtension(gifName); //with no extension
+	String arcadeNameExtension = FilenameUtils.getExtension(gifName);
+        if (arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension if .png or .gif, changed as it was failing with files with two dots
+            gifName = FilenameUtils.removeExtension(gifName);
+        }
+		// gifName = FilenameUtils.removeExtension(gifName); //with no extension
 		//String gifNamePath = currentDir + "/" + gifName + ".gif";  //   ex. c:\animation\tree.gif
 
 	    InputStream GIFStream = null; 
@@ -2404,8 +2452,21 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
 		
        
                 String selectedFileName = FilenameUtils.getName(gifFilePath); 
-                fileType = FilenameUtils.getExtension(gifFilePath);
-                gifNameNoExt = FilenameUtils.removeExtension(selectedFileName); //with no extension
+                //fileType = FilenameUtils.getExtension(gifFilePath);
+                
+                String arcadeNameExtension = FilenameUtils.getExtension(gifName);
+                if (arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension is .gif, changed as it was failing with files with two dots
+                    gifNameNoExt = FilenameUtils.removeExtension(selectedFileName);
+                }
+                else {
+                    gifNameNoExt = selectedFileName; //with no extension
+                }
+               
+                
+                
+                //gifNameNoExt = FilenameUtils.removeExtension(selectedFileName); //with no extension
+                
+                
 		if (!silentMode_) {
                     System.out.println("Arcade file name: " + selectedFileName);
                     System.out.println("Arcade file name path: " + gifFilePath);
@@ -2421,7 +2482,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                         //since we are decoding, we need to first make sure the .rgb565 and .txt decoded file is not there and delete if so.
 			String gifName565Path =  decodedDir + gifNameNoExt + ".rgb565";  //   ex. c:\animation\decoded\tree.rgb565
 			String gifNameTXTPath = decodedDir + gifNameNoExt + ".txt";  //   ex. c:\animation\decoded\tree.txt
-			 
+			System.out.println("al text path: " + gifNameTXTPath);
                           
 			  //since we are decoding, we need to first make sure the .rgb565 and .txt decoded file is not there and delete if so.
 			  
@@ -2698,7 +2759,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 fileType = FilenameUtils.getExtension(gifFilePath);
                 //gifNameNoExt = FilenameUtils.removeExtension(selectedFileName); //with no extension
                 gifNameNoExt = FilenameUtils.removeExtension(selectedFileName); //with no extension
-                
+           
                 
                 //if (arcadeNameExtension.length() > 3) {   //this means there just happened to be a period in the file  name 
                 //    arcadeNameOnly = arcadeName;
@@ -2706,6 +2767,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 //else  { //there was no extension or it's a valid extension so proceed as normal and remove the extension if it's there
                 //    arcadeNameOnly = FilenameUtils.removeExtension(arcadeName);
                 //} 
+                
 		if (!silentMode_) {
                     System.out.println("Arcade file name: " + selectedFileName);
                     System.out.println("Arcade file name path: " + gifFilePath);
@@ -3258,6 +3320,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                 //drawktask.shutdown();    //looks like this is not needed
                 scrollingTextTimerRunningFlag.set(false);
                 futurescroll.cancel(true); //dont' interrupt if busy
+                scrollTextService.shutdownNow();
             }
 
              if (clockTimerRunningFlag.get() == true) {
@@ -3449,8 +3512,9 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         //ledblinky needed this because ledblanky calls pixelweb.exe and then immediately sends some commands
         if (pixelConnected) {
             //let's add two items to the Q and then play the Q
-            addtoQueue("gif",selectedPlatformName,selectedFileName,Marqueeloop,writeMode,Color.red,1);
+            PixelQueue.clear();
             addtoQueue("text", text, Long.toString(speed), Textloop, Boolean.valueOf(false), color, scrollsmooth);
+            addtoQueue("gif",selectedPlatformName,selectedFileName,Marqueeloop,writeMode,Color.red,1);
             cycleFlag = true;
             doneLoopingCheckQueue(cycleFlag);  //add true
         } 
@@ -3910,8 +3974,10 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         //ledblinky needed this because ledblanky calls pixelweb.exe and then immediately sends some commands
         if (pixelConnected) {
             //let's add two items to the Q and then play the Q
-            addtoQueue("png",consoleNameMapped,PNGNameWithExtension,loop,writeMode,Color.red,1);
+            //empty the Q first
+            PixelQueue.clear();
             addtoQueue("text", text, Long.toString(speed), Textloop, Boolean.valueOf(false), color, scrollsmooth);
+            addtoQueue("png",consoleNameMapped,PNGNameWithExtension,loop,writeMode,Color.red,1);
             cycleFlag = true;
             doneLoopingCheckQueue(cycleFlag);  //add true
         } 
@@ -4512,7 +4578,7 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
                           PixelQueue.remove();
                           if (!silentMode_) System.out.println("Processing GIF Queue item...");
                           try {
-                              writeArcadeAnimation(console_, filenameWithExt_, writeMode_, loop_, true); //sending true for pixelconnected as we would not have gotten here if pixel was not connected
+                              writeArcadeAnimation(console_, filenameWithExt_, writeMode_, loop_, true); //sending true for pixelconnected as we would not have gotten here if pixel was not connected, to do need to send without extension
                           } catch (NoSuchAlgorithmException ex) {
                               Logger.getLogger(Pixel.class.getName()).log(Level.SEVERE, null, ex);
                           }
@@ -5195,7 +5261,12 @@ private static String checksum(String filepath, MessageDigest md) throws IOExcep
         } else {
           Pixel.this.x = Pixel.this.x - Pixel.this.scrollingTextMultiplier;
         } 
-      } 
+      }
+//      else {
+//          Thread.currentThread().stop();
+//      }
+      
+   
     }  
     
     //private class TextScroller extends TimerTask
