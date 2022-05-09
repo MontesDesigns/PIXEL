@@ -46,7 +46,8 @@ public class AnimationsHttpHandler extends ImageResourceHttpHandler
             Pixel pixel = this.application.getPixel();
             try {
               //pixel.writeArcadeAnimation(consoleName, arcadeName, saveAnimation.booleanValue(), loop, WebEnabledPixel.pixelConnected);
-              pixel.ArcadeCycleGIF(consoleName, arcadeName, false, Marqueeloop, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard coding the text loop to 1
+              //pixel.ArcadeCycleGIF(consoleName, arcadeName, false, Marqueeloop, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard coding the text loop to 1
+              pixel.ArcadeCycleGIF(consoleName, arcadeName, false, 1, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard coding the text loop to 1 and marquee loop to 1
 
               //String selectedPlatformName, String selectedFileName, boolean writeMode, int Marqueeloop, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth
             } catch (NoSuchAlgorithmException ex) {

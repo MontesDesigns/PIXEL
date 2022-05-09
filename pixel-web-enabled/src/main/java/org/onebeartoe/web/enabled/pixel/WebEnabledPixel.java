@@ -103,7 +103,7 @@ public class WebEnabledPixel  {
     
   public static boolean dxEnvironment = true;
   
-  public static String pixelwebVersion = "4.4.2";
+  public static String pixelwebVersion = "4.4.6";
   
   public static LogMe logMe = null;
   
@@ -332,7 +332,21 @@ public class WebEnabledPixel  {
   
   private static String startupLEDMarquee_ = "no";
   
+  private static String displayTextBeforeDefaultConsoleMarquee_ = "no";
+  
   private static String startupLEDMarqueeName_ = "arcade";
+  
+  private static Integer lastTickerFeedNum = 1;
+  
+  private static Integer lastTickerItemNum = 0;
+  
+  public static String[] consoleArray = { 
+        "mame", "atari2600", "daphne", "nes", "neogeo", "atarilynx", "snes", "atari5200", "atari7800", "atarijaguar", 
+        "c64", "genesis", "capcom", "n64", "psp", "psx", "coleco", "dreamcast", "fba", "gb", 
+        "gba", "ngp", "ngpc", "odyssey", "saturn", "megadrive", "gbc", "gamegear", "mastersystem", "sega32x", 
+        "3do", "msx", "atari800", "pc", "nds", "amiga", "fds", "futurepinball", "amstradcpc", "apple2", 
+        "intellivision", "macintosh", "ps2", "pcengine", "segacd", "sg-1000", "ti99", "vectrex", "virtualboy", "visualpinball", 
+        "wonderswan", "wonderswancolor", "zinc", "sss", "zmachine", "zxspectrum" };
   
   public WebEnabledPixel(String[] args) throws FileNotFoundException, IOException {
       
@@ -425,7 +439,7 @@ public class WebEnabledPixel  {
         this.playLastSavedMarqueeOnStartup_ = (String)sec.get("playLastSavedMarqueeOnStartup");
       } else {
         if (!silentMode_) System.out.println("Creating key in settings.ini : playLastSavedMarqueeOnStartup");
-        sec.add("playLastSavedMarqueeOnStartup", "yes");
+        sec.add("playLastSavedMarqueeOnStartup", "no");
         sec.add("playLastSavedMarqueeOnStartup_OPTION", "yes");
         sec.add("playLastSavedMarqueeOnStartup_OPTION", "no");
         sec.add("ledResolution_OPTION", "128x32C2");
@@ -559,9 +573,18 @@ public class WebEnabledPixel  {
       if (sec.containsKey("startupLEDMarquee")) {
         startupLEDMarquee_ = (String)sec.get("startupLEDMarquee");
       } else {
-        sec.add("startupLEDMarquee", "no");
+        sec.add("startupLEDMarquee", "yes");
         sec.add("startupLEDMarquee_OPTION", "no");
         sec.add("startupLEDMarquee_OPTION", "yes");
+        ini.store();
+      } 
+      
+       if (sec.containsKey("displayTextBeforeDefaultConsoleMarquee")) {
+        displayTextBeforeDefaultConsoleMarquee_ = (String)sec.get("displayTextBeforeDefaultConsoleMarquee");
+      } else {
+        sec.add("displayTextBeforeDefaultConsoleMarquee", "no");
+        sec.add("displayTextBeforeDefaultConsoleMarquee_OPTION", "no");
+        sec.add("displayTextBeforeDefaultConsoleMarquee_OPTION", "yes");
         ini.store();
       } 
       
@@ -1255,7 +1278,7 @@ public class WebEnabledPixel  {
   
   public static void LCDSearch() {
       if (pingHost(getLCDMarqueeHostName(), 8080, 5000)) {    
-            System.out.print("[PIXELCADE LCD FOUND] : " + getLCDMarqueeHostName() + "\n");
+            if (!silentMode_) System.out.print("[PIXELCADE LCD FOUND] : " + getLCDMarqueeHostName() + "\n");
             LogMe.aLogger.info("[PIXELCADE LCD FOUND] : " + getLCDMarqueeHostName());
             LCDFound_ = true;
       }
@@ -1580,6 +1603,13 @@ public static boolean validIP (String ip) {
   
   public static String getLCDMarqueeHostName() {
     return lcdMarqueeHostName_;
+  }
+  
+  public static Boolean getdisplayTextBeforeDefaultConsoleMarquee() {
+      if (displayTextBeforeDefaultConsoleMarquee_.equals("yes")) 
+          return true;
+      else 
+          return false;
   }
   
   public static void setLCDMarqueeHostName(String newLCDHostName) {
@@ -2303,7 +2333,15 @@ public static boolean validIP (String ip) {
     return consoleNameMapped;
   }
   
-  public static void startTicker(Color color, Integer scrollspeed, Boolean explicitColor) {
+   public static boolean consoleMatch(String[] arr, String targetValue) {
+    for (String s : arr) {
+      if (s.equals(targetValue))
+        return true; 
+    } 
+    return false;
+  }
+  
+  public static void startTicker(Color color, Integer scrollspeed, Boolean explicitColor) {   //starts a ticker
        //  ************ text house keeping one time let's take care of 
                 
 //                if (tickerColor_ != null) {
@@ -2345,47 +2383,84 @@ public static boolean validIP (String ip) {
                     alternateTickerColor = true;
                 }
                 // ********** end text house keeping ************************
+                
+                //next up is a loop so before going there, let's get the last settings so we know where to start
+                
+                //one time portion here, the goal is to start where we left off the last time so when re-starting the listener, we don't start over at the beginning each time, hyperspin screen saver use case here
+                switch (lastTickerFeedNum) {
+                    case 1:  
+                          if (!feed1_.equals("none") && isTickerRunning == true) {
+                              runTicker(feed1_,explicitColor,lastTickerItemNum);
+                              lastTickerFeedNum=1;
+                              break;
+                          } 
+                    case 2:  
+                          if (!feed2_.equals("none") && isTickerRunning == true) {
+                              runTicker(feed2_,explicitColor,lastTickerItemNum);
+                              lastTickerFeedNum=2;
+                              break;
+                          } 
+                    case 3:  
+                          if (!feed3_.equals("none") && isTickerRunning == true) {
+                              runTicker(feed3_,explicitColor,lastTickerItemNum);
+                              lastTickerFeedNum=3;
+                              break;
+                          } 
+                    case 4:  
+                          if (!feed4_.equals("none") && isTickerRunning == true) {
+                              runTicker(feed4_,explicitColor,lastTickerItemNum);
+                              lastTickerFeedNum=4;
+                              break;
+                          } 
+                    case 5:  
+                          if (!feed5_.equals("none") && isTickerRunning == true) {
+                              runTicker(feed5_,explicitColor,lastTickerItemNum);
+                              lastTickerFeedNum=5;
+                              break;
+                          } 
+                }        
             
-                while (isTickerRunning == true) {   
+                while (isTickerRunning == true) {  //we did the first run above so now let's loop
                     
-                    if (!feed1_.equals("none") && isTickerRunning == true)
-                        runTicker(feed1_,explicitColor);
-                    if (!feed2_.equals("none") && isTickerRunning == true)
-                        runTicker(feed2_,explicitColor);
-                    if (!feed3_.equals("none") && isTickerRunning == true)
-                        runTicker(feed3_,explicitColor);
-                    if (!feed4_.equals("none") && isTickerRunning == true)
-                        runTicker(feed4_,explicitColor);
-                    if (!feed5_.equals("none") && isTickerRunning == true)
-                        runTicker(feed5_,explicitColor);
+                    if (!feed1_.equals("none") && isTickerRunning == true) {
+                        runTicker(feed1_,explicitColor,0);
+                        lastTickerFeedNum=1;
+                    }    
+                    if (!feed2_.equals("none") && isTickerRunning == true) {
+                        runTicker(feed2_,explicitColor,0);
+                        lastTickerFeedNum=2;
+                    }    
+                    if (!feed3_.equals("none") && isTickerRunning == true) {
+                        runTicker(feed3_,explicitColor,0);
+                        lastTickerFeedNum=3;
+                    }    
+                    if (!feed4_.equals("none") && isTickerRunning == true) {
+                        runTicker(feed4_,explicitColor,0);
+                        lastTickerFeedNum=4;
+                    }
+                        
+                    if (!feed5_.equals("none") && isTickerRunning == true) {
+                        runTicker(feed5_,explicitColor,0);
+                        lastTickerFeedNum=5;
+                    }  
                 }
             
   }
-  
-   public static boolean isValidRSS(String address) {
-                    boolean ok = false;
-                    try{
-                        URL url = new URL(address);
-                        HttpURLConnection httpcon = (HttpURLConnection)url.openConnection();
-                        SyndFeedInput input = new SyndFeedInput();
-                        SyndFeed feed = input.build(new XmlReader(url));
-                        ok = true;
-                    } catch (Exception exc){
-                        exc.printStackTrace();
-                    }
-                    return ok;
-                }
                
-    public static void runTicker(String tickerRSS, Boolean explicitColor) {
+    public static void runTicker(String tickerRSS, Boolean explicitColor,Integer StartingIndex) { //this is being called from a while loop, if this is the first run, startingindex will be 0 but it won't be 0 if it's not the first run
                 
                 //we need to make sure the RSS feed is valid
                 // to do don't send to LCD from here as LCD has no Q for scrolling text
                 // but look into sending ticker text from the Q itself to LCD as that will be timed as could then run on Pixelcade Dot
                 if (!silentMode_) System.out.println("[TICKER] " + tickerRSS);
                 if (isValidRSS(tickerRSS)) {
+                    headlinesarray_.clear(); //not sure if this was causing out of memory messages?
                     headlinesarray_ = (ArrayList<String>) FeedReader.getTitlesArray(tickerRSS);
 
-                    for (int i = 0; i < headlinesarray_.size(); i++) {
+                    //for (int i = 0; i < headlinesarray_.size(); i++) {
+                    //make a check that startingindex is less than array size
+                    
+                    for (int i = StartingIndex; i < headlinesarray_.size(); i++) {    
                         //System.out.println(headlinesarray_.get(i));
                         
                         if (!isTickerRunning) {
@@ -2414,6 +2489,7 @@ public static boolean validIP (String ip) {
                         } catch (InterruptedException ex) {
                             Logger.getLogger(WebEnabledPixel.class.getName()).log(Level.SEVERE, null, ex);
                         }
+                        lastTickerItemNum = i;
                     }
                 }
                 else {
@@ -2421,6 +2497,20 @@ public static boolean validIP (String ip) {
                     LogMe.aLogger.info("[ERROR] " + tickerRSS + " is not a valid URL or available");
                 }
                }
+    
+     public static boolean isValidRSS(String address) {
+                    boolean ok = false;
+                    try{
+                        URL url = new URL(address);
+                        HttpURLConnection httpcon = (HttpURLConnection)url.openConnection();
+                        SyndFeedInput input = new SyndFeedInput();
+                        SyndFeed feed = input.build(new XmlReader(url));
+                        ok = true;
+                    } catch (Exception exc){
+                        exc.printStackTrace();
+                    }
+                    return ok;
+     }
   
   @Deprecated
   private class PixelIntegration extends IOIOConsoleApp {

@@ -34,6 +34,7 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
+import static org.apache.commons.io.FilenameUtils.indexOfExtension;
 import static org.onebeartoe.web.enabled.pixel.WebEnabledPixel.setCurrentPlatformGame;
 //import static org.apache.velocity.texen.util.FileUtil.file;
 
@@ -74,7 +75,8 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
   public void handlePNGCycle(File PNGFileFullPath, Boolean writeMode, int loop, String consoleNameMapped, String PNGNameWithExtension, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth) {  //per AtGames request, this will loop between a PNG/GIF and Scrolling Text until Q is interrupted
     Pixel pixel = this.application.getPixel();
     try {
-      pixel.ArcadeCyclePNG(PNGFileFullPath,false, 5, consoleNameMapped, PNGNameWithExtension, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard code text loop to 1 as the png loop will be longer like 5s and hard coding PNG to 5 as we aren't going to know if PNG or GIF
+      //pixel.ArcadeCyclePNG(PNGFileFullPath,false, 10, consoleNameMapped, PNGNameWithExtension, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard code text loop to 1 as the png loop will be longer like 10s and hard coding PNG to 5 as we aren't going to know if PNG or GIF
+      pixel.ArcadeCyclePNG(PNGFileFullPath,false, loop, consoleNameMapped, PNGNameWithExtension, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth);
     } catch (NoSuchAlgorithmException ex) {
       Logger.getLogger(ArcadeHttpHandler.class.getName()).log(Level.SEVERE, (String)null, ex);
     }
@@ -89,11 +91,12 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
     }
   }
   
-   public void handleGIFCycle(String consoleName, String arcadeName, boolean writeMode, int Marqueeloop, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth) {  //per AtGames request, this will loop between a PNG/GIF and Scrolling Text until Q is interrupted
+   public void handleGIFCycle(String consoleName, String arcadeName, boolean writeMode, int Marqueeloop, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth) {  //per AtGames request, this will loop between a PNG/GIF and Scrolling Text until Q is interrupted, may need to hard code gif cycles to 1
     Pixel pixel = this.application.getPixel();
     try {
       //pixel.writeArcadeAnimation(consoleName, arcadeName, saveAnimation.booleanValue(), loop, WebEnabledPixel.pixelConnected);
-      pixel.ArcadeCycleGIF(consoleName, arcadeName, false, Marqueeloop, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard coding the text loop to 1
+     // pixel.ArcadeCycleGIF(consoleName, arcadeName, false, Marqueeloop, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard coding the text loop to 1
+     pixel.ArcadeCycleGIF(consoleName, arcadeName, false, 1, WebEnabledPixel.pixelConnected, text, 1, speed, color, scrollsmooth); //hard coding the text loop to 1
       
       //String selectedPlatformName, String selectedFileName, boolean writeMode, int Marqueeloop, boolean pixelConnected, String text, int Textloop, long speed, Color color, int scrollsmooth
     } catch (NoSuchAlgorithmException ex) {
@@ -189,13 +192,23 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
       arcadeName = arcadeName.replace("\n", "").replace("\r", "");
       arcadeNameExtension = FilenameUtils.getExtension(arcadeName);
       
-      if (arcadeNameExtension.length() > 3) {
-        arcadeNameOnly = arcadeName;
-        arcadeNameOnlyPNG = arcadeName;
-      } else {
+    if (arcadeNameExtension.toLowerCase().equals("png") || arcadeNameExtension.toLowerCase().equals("gif")) {  //only remove the extension if .png or .gif, changed as it was failing with files with two dots
         arcadeNameOnly = FilenameUtils.removeExtension(arcadeName);
         arcadeNameOnlyPNG = FilenameUtils.removeExtension(arcadeName);
-      } 
+    }
+    else {
+        arcadeNameOnly = arcadeName;
+        arcadeNameOnlyPNG = arcadeName;
+    }
+      
+      
+//      if (arcadeNameExtension.length() > 3) {  //ie, png or gif
+//        arcadeNameOnly = arcadeName;
+//        arcadeNameOnlyPNG = arcadeName;
+//      } else {
+//        arcadeNameOnly = FilenameUtils.removeExtension(arcadeName);
+//        arcadeNameOnlyPNG = FilenameUtils.removeExtension(arcadeName);
+//      } 
       
       i = 0;
       for (NameValuePair param : params) {
@@ -354,7 +367,10 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
       File arcadeFilePNG = new File(arcadeFilePathPNG);
       
       if (arcadeFilePNG.exists() && !arcadeFilePNG.isDirectory()) {
-        arcadeNameOnlyPNG = FilenameUtils.removeExtension(arcadeName);
+        //arcadeNameOnlyPNG = FilenameUtils.removeExtension(arcadeName);  //not sure why I added this, I guess because the api call could include an extension, the issue is this fails if the file name has two dots in it
+        //arcadeNameOnlyPNG = getNameWithoutExtension(arcadeNameOnlyPNG);
+        // System.out.println("TESTING: " + arcadeNameOnlyPNG);
+        
         
         if (WebEnabledPixel.LEDStripExists()) { 
             setStripColor(arcadeFilePNG);
@@ -599,13 +615,29 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
                     handleGIF(consoleNameMapped, arcadeNameOnly + ".gif", Boolean.valueOf(saveAnimation), loop_);
                 }
                 
-        } else if (text_ != "" && !text_.equals("nomatch")) {                                               //alt text was specified and we could not find a PNG or GIF so let's scroll text
-            
+        } 
+        
+        else if (WebEnabledPixel.getdisplayTextBeforeDefaultConsoleMarquee()) {
+            //note no cycle mode here if there is no image
+            if (text_ != "" && !text_.equals("nomatch")) {     //alt text was specified and we could not find a PNG or GIF so let's scroll text
+
                 if (!WebEnabledPixel.isMister())  {
                     pixel.scrollText(text_, loop_, speed.longValue(), color, WebEnabledPixel.pixelConnected, scrollsmooth_);
                 }
           
-        } else {                                                                                            //no alt text was given and no PNG or GIF match so let's get the default console GIF
+            } 
+            
+        }
+        
+//        else if (text_ != "" && !text_.equals("nomatch")) {    //let's not do scrolling text anymore      //alt text was specified and we could not find a PNG or GIF so let's scroll text
+//            
+//                if (!WebEnabledPixel.isMister())  {
+//                    pixel.scrollText(text_, loop_, speed.longValue(), color, WebEnabledPixel.pixelConnected, scrollsmooth_);
+//                }
+//          
+//        } 
+        
+        else {                                                                                            //no alt text was given and no PNG or GIF match so let's get the default console GIF
                 consoleFilePathPNG = pixelHome + "console/default-" + consoleNameMapped + ".png";
                 File consoleFilePNG = new File(consoleFilePathPNG);
                 consoleFilePathGIF = pixelHome + "console/default-" + consoleNameMapped + ".gif";
@@ -635,7 +667,14 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
                   defaultConsoleFilePathPNG = pixelHome + "console/default-marquee.png";
                   File defaultConsoleFilePNG = new File(defaultConsoleFilePathPNG);
                   if (defaultConsoleFilePNG.exists() && !defaultConsoleFilePNG.isDirectory()) {
-                    handlePNG(defaultConsoleFilePNG, Boolean.valueOf(saveAnimation), loop_, "console", FilenameUtils.getName(defaultConsoleFilePathPNG));
+                      
+                    if (cycle_ && text_ != "" && !WebEnabledPixel.isMister()) {
+                          handlePNGCycle(defaultConsoleFilePNG, false, loop_,"console",FilenameUtils.getName(defaultConsoleFilePathPNG),true,text_,loop_,speed,color,scrollsmooth_);
+                    }  
+                    else {    
+                          handlePNG(defaultConsoleFilePNG, Boolean.valueOf(saveAnimation), loop_, "console", FilenameUtils.getName(defaultConsoleFilePathPNG));
+                    } 
+                    //handlePNG(defaultConsoleFilePNG, Boolean.valueOf(saveAnimation), loop_, "console", FilenameUtils.getName(defaultConsoleFilePathPNG));
                   } else if (!CliPixel.getSilentMode()) {
                     System.out.println("Default console LED Marquee file not found: " + defaultConsoleFilePathPNG);
                     System.out.println("Skipping LED marquee " + streamOrWrite + ", please check the files");
@@ -813,6 +852,23 @@ public class ArcadeHttpHandler extends ImageResourceHttpHandler {
             }                 
         return true;
     }
+    
+    public static String removeFileExtension(String filename, boolean removeAllExtensions) {
+        if (filename == null || filename.isEmpty()) {
+            return filename;
+        }
+
+        String extPattern = "(?<!^)[.]" + (removeAllExtensions ? ".*" : "[^.]*$");
+        return filename.replaceAll(extPattern, "");
+    }
+    
+    public static String getNameWithoutExtension(String fileName) {
+
+     int dotIndex = fileName.lastIndexOf('.');
+     return (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
+    }
+    
+    
   
 }
    

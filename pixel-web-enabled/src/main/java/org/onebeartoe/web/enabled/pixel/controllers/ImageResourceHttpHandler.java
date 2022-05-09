@@ -27,6 +27,7 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
     protected WebEnabledPixel application;
     protected Logger logger;
     LogMe logMe = null;
+    private static String consoleNameMapped = "mame";
         
     public ImageResourceHttpHandler(WebEnabledPixel application)
     {
@@ -46,6 +47,7 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
         String redirect = "";
         String arcadeNameExtension = "";
         String consoleNameExtension = "";
+        
         
          //thought i might need to do this but turns out not
         //String encoding = "UTF-8";
@@ -76,7 +78,6 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
             int i = path.lastIndexOf("/") + 1;
             String name = path.substring(i);
             
-            
             if (WebEnabledPixel.getLCDMarquee().equals("yes") && (path.contains("/arcade/") || path.contains("/console/") )) {  //relaying the api call to pixelcadedx.local but don't relay quit and shutdown commands
                 try {
                     if (InetAddress.getByName(getLCDMarqueeHostName()).isReachable(5000)) { //to do should we be checking everytime if reachable?
@@ -96,25 +97,22 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
                            consoleName = (urlPath.substring(urlPath.lastIndexOf("/") + 1)).toLowerCase(); //get the last part of the string
                            consoleName = consoleName.replace(" ", "_"); //had to add this one as Dennis made change to send native console names with no more _
                            
-                           consoleNameExtension = FilenameUtils.getExtension(consoleName);
+                           //prior to 4.4.4, we were not mapping the console here and instead relying on the LCD console mapping but this isn't a good way to go as the LCD user has no control there so let's do it here
+                           consoleNameMapped = getConsoleMapped(consoleName);
                              
                             if (!consoleName.equals("black")) { 
-                                //if (arcadeNameExtension.isEmpty()) {  //if its empty, then we need to add the extension
                                 if (consoleNameExtension.isEmpty()) {  //if its empty, then we need to add the extension    
-                                       redirect = "/arcade/stream/default/" + consoleName + ".jpg"; //made this change so users can maintain console artwork in one place
+                                       redirect = "/arcade/stream/default/" + consoleNameMapped + ".jpg"; //made this change so users can maintain console artwork in one place
                                        if (!CliPixel.getSilentMode()) {
                                             System.out.println("yoyo");
                                             System.out.println(redirect);
                                        }
-                                        //redirect = "/arcade/stream/mame/" + consoleName + ".jpg";
-                                       //redirect = "/console/stream/" + consoleName + ".jpg";  //this may break on Pi LCD as it doesn't accept console
                                 }
                                 else {  //there is already an extension so no need to add an additional one
-                                       redirect = "/arcade/stream/default/" + consoleName;
-                                       //redirect = "/arcade/stream/mame/" + consoleName;
-                                       //redirect = "/console/stream/" + consoleName + ".jpg";
+                                       redirect = "/arcade/stream/default/" + consoleNameMapped;
+                                       
                                 }
-                                //String redirect = "/console/stream/" + consoleName + ".jpg";
+                                
                                 URL url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + redirect);
                                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
                                 con.setRequestMethod("GET");
@@ -165,11 +163,15 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
                                 //let's see if the front end also included the extension
                                 if (!gameName.equals("dummy")) {                                          // let's no longer send the black frame calls to LCD
                                     arcadeNameExtension = FilenameUtils.getExtension(gameName);
+                                    
+                                    //prior to 4.4.4, we were not mapping the console here and instead relying on the LCD console mapping but this isn't a good way to go as the LCD user has no control there so let's do it here
+                                    consoleNameMapped = getConsoleMapped(console);
+                                    
                                     if (arcadeNameExtension.isEmpty()) {  //if its empty, then we need to add the extension
-                                        revisedURL = "/arcade/stream/" + console + "/" + gameName + ".jpg"; //console has the _ and game name will be original with spaces
+                                        revisedURL = "/arcade/stream/" + consoleNameMapped + "/" + gameName + ".jpg"; //console has the _ and game name will be original with spaces
                                     }
                                     else {  //there is already an extension so no need to add an additional one
-                                        revisedURL = "/arcade/stream/" + console + "/" + gameName;
+                                        revisedURL = "/arcade/stream/" + consoleNameMapped + "/" + gameName;
                                     }
 
                                     revisedURL = revisedURL.replace(" ","%20"); //if we don't add this, the URL call wont' make it and will be truncated at the spaces
@@ -276,6 +278,23 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
     
  boolean isBlankString(String string) {
     return string == null || string.trim().isEmpty();
+} 
+
+
+private static String getConsoleMapped(String consoleName) {  //prior we were not mapping the console here and instead relying on the LCD console mapping but this isn't a good way to go as the LCD user has no control there so let's do it here
+        
+        consoleName = consoleName.toLowerCase();
+
+        if (!WebEnabledPixel.consoleMatch(WebEnabledPixel.consoleArray, consoleName)) {
+          consoleNameMapped = WebEnabledPixel.getConsoleMapping(consoleName);
+        } else {
+          consoleNameMapped = consoleName;
+        } 
+
+        if (consoleNameMapped.equals("mame-libretro"))
+          consoleNameMapped = "mame"; 
+        
+        return consoleNameMapped;
 }
  
  public static String removeLastChar(String s) {
@@ -284,6 +303,6 @@ public abstract class ImageResourceHttpHandler extends TextHttpHandler
       : (s.substring(0, s.length() - 1));
 }
     
-    protected abstract void writeImageResource(String imageClassPath) throws IOException, ConnectionLostException;
-            
-    }
+protected abstract void writeImageResource(String imageClassPath) throws IOException, ConnectionLostException;
+
+}

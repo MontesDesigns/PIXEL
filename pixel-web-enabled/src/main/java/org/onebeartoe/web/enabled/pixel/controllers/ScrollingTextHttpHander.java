@@ -44,6 +44,7 @@ public class ScrollingTextHttpHander extends TextHttpHandler  //TO DO have TextH
 {
     protected LCDPixelcade lcdDisplay = null;
     protected WebEnabledPixel app;
+    private static String consoleNameMapped = "mame";
     
     public ScrollingTextHttpHander(WebEnabledPixel application)
     {
@@ -84,6 +85,8 @@ public class ScrollingTextHttpHander extends TextHttpHandler  //TO DO have TextH
         URI requestURI = exchange.getRequestURI();
         Font font = null;
         
+      
+        
         WebEnabledPixel.setTickerRunning(false); //stop the ticker as we have an arcade function
         
          if (!CliPixel.getSilentMode()) {
@@ -91,7 +94,7 @@ public class ScrollingTextHttpHander extends TextHttpHandler  //TO DO have TextH
              System.out.println("Scrolling text handler received a request: " + requestURI);
          }
 
-         if (WebEnabledPixel.getLCDMarquee().equals("yes")) {  //this is where we relay the call to LCD
+         if (WebEnabledPixel.getLCDMarquee().equals("yes")) {  //this is where we relay the scrolling text call to LCD
             try {
                if (InetAddress.getByName(getLCDMarqueeHostName()).isReachable(5000)){
                    WebEnabledPixel.dxEnvironment = true;
@@ -119,13 +122,44 @@ public class ScrollingTextHttpHander extends TextHttpHandler  //TO DO have TextH
 //                   }
 //                   URL url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + textURL);
 
+
+                   //but we first need to check if there is a system param and if so we must map it before sending over to LCD or else there will be a black screen issue
+                   String systemName = null;
+                   String textURL = requestURI.toString();
+                   
+                   try {
+                        Map<String, String> values = getUrlValues(requestURI.toString());
+                        systemName = values.get("system");
+                        //System.out.println("Pre Map System: " + systemName);
+                       } catch (UnsupportedEncodingException e) {
+                       } 
+                   
+                   
+                   if (systemName != null) {       //if system is there, we need to map it
+                       
+                        systemName = systemName.replace(" ", "_"); //had to add this as Dennis made the change to send the native console name with spaces as prior code and mapping tables assumed an _ instead of space
+                        systemName = systemName.toLowerCase();
+                        if (!WebEnabledPixel.consoleMatch(WebEnabledPixel.consoleArray, systemName)) {
+                          consoleNameMapped = WebEnabledPixel.getConsoleMapping(systemName);
+                        } else {
+                          consoleNameMapped = systemName;
+                        } 
+
+                        if (consoleNameMapped.equals("mame-libretro"))
+                          consoleNameMapped = "mame"; 
+
+                         textURL = textURL.replace(systemName, consoleNameMapped);
+                         //System.out.println("Post Map System: " + textURL);
+                   }
+                   
                     URL url = null;
                     if (WebEnabledPixel.getLCDLEDCompliment() == true && WebEnabledPixel.pixelConnected == true) { //then we need to add &led to the end of the URL params
-                       String textURL = requestURI.toString();
+                       //String textURL = requestURI.toString();
                        url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + textURL + "&led"); //this flag tells LCD not to scroll as we already have LED scrolling
                     }
                     else {
-                       url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + requestURI);
+                       //url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + requestURI);
+                       url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + textURL);
                     }
 
                    HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -134,7 +168,7 @@ public class ScrollingTextHttpHander extends TextHttpHandler  //TO DO have TextH
                    con.disconnect();
                    
                }
-           }catch (  Exception e){}
+           }catch (Exception e){}
         }
          
         String encodedQuery = requestURI.getQuery();
