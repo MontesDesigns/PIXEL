@@ -130,15 +130,15 @@ public class ScrollingTextHttpHander extends TextHttpHandler  //TO DO have TextH
                    try {
                         Map<String, String> values = getUrlValues(requestURI.toString());
                         systemName = values.get("system");
-                        //System.out.println("Pre Map System: " + systemName);
+                        //System.out.println("Pre Map Console: " + systemName); //to do comment this out later
                        } catch (UnsupportedEncodingException e) {
                        } 
                    
                    
                    if (systemName != null) {       //if system is there, we need to map it
                        
-                        systemName = systemName.replace(" ", "_"); //had to add this as Dennis made the change to send the native console name with spaces as prior code and mapping tables assumed an _ instead of space
-                        systemName = systemName.toLowerCase();
+                        //systemName = systemName.replace(" ", "_"); //had to add this as Dennis (LEDBlinky dev) made the change to send the native console name with spaces as prior code and mapping tables assumed an _ instead of space
+                        systemName = systemName.toLowerCase(); //should we do this or rely on mapping table? but then again all systems in pixelcade are lowercase anyway so I guess this is more efficient
                         if (!WebEnabledPixel.consoleMatch(WebEnabledPixel.consoleArray, systemName)) {
                           consoleNameMapped = WebEnabledPixel.getConsoleMapping(systemName);
                         } else {
@@ -148,8 +148,18 @@ public class ScrollingTextHttpHander extends TextHttpHandler  //TO DO have TextH
                         if (consoleNameMapped.equals("mame-libretro"))
                           consoleNameMapped = "mame"; 
 
-                         textURL = textURL.replace(systemName, consoleNameMapped);
-                         //System.out.println("Post Map System: " + textURL);
+                        //we had a bug here prior, replace does not work with %20 in the string so adding extra logic here
+                        //System.out.println("Console Mapped: " + consoleNameMapped);
+                        String SpaceCharacterToReplace = "%20";
+                        String SpaceReplacement = " ";
+                        //System.out.println("System Name: " + systemName);
+                        // Let's first replace %20 with a space
+                        textURL = textURL.replace(SpaceCharacterToReplace, SpaceReplacement);
+                        // Then let's do the actual pre console to console mapped replacement
+                        textURL = textURL.replace(systemName,consoleNameMapped);
+                        // And now replace the spaces with %20
+                        textURL = textURL.replace(SpaceReplacement,SpaceCharacterToReplace);
+                        System.out.println("Console Mapped Scrolling Text Call: " + textURL);
                    }
                    
                     URL url = null;
@@ -162,7 +172,7 @@ public class ScrollingTextHttpHander extends TextHttpHandler  //TO DO have TextH
                        url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + textURL);
                     }
 
-                   HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                    HttpURLConnection con = (HttpURLConnection) url.openConnection();
                    con.setRequestMethod("GET");
                    con.getResponseCode();
                    con.disconnect();
