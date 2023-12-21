@@ -18,6 +18,7 @@ import ioio.lib.util.IOIOLooper;
 import ioio.lib.util.pc.IOIOConsoleApp;
 
 import ioio.lib.api.SpiMaster; //for the LED Strip
+import ioio.lib.api.Uart;
 
 import java.awt.*;
 import java.io.*;
@@ -28,6 +29,7 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
@@ -93,6 +95,7 @@ import javax.jmdns.ServiceListener;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.onebeartoe.web.enabled.pixel.controllers.AppAPIHttpHandler;
 import org.onebeartoe.web.enabled.pixel.controllers.ScrollingTextHttpHandlerBasic;
 import org.onebeartoe.web.enabled.pixel.controllers.lcdfinder;
 
@@ -103,7 +106,7 @@ public class WebEnabledPixel  {
     
   public static boolean dxEnvironment = true;
   
-  public static String pixelwebVersion = "4.4.6";
+  public static String pixelwebVersion = "4.5.0";
   
   public static LogMe logMe = null;
   
@@ -117,7 +120,7 @@ public class WebEnabledPixel  {
   
   private static Pixel pixel;
   
-  private String ledResolution_ = "";
+  private static String ledResolution_ = "";
   
   private String playLastSavedMarqueeOnStartup_ = "yes";
   
@@ -340,6 +343,8 @@ public class WebEnabledPixel  {
   
   private static Integer lastTickerItemNum = 0;
   
+  private static String pixelcadeFirmwareVersion = "Not Connected";
+  
   public static String[] consoleArray = { 
         "mame", "atari2600", "daphne", "nes", "neogeo", "atarilynx", "snes", "atari5200", "atari7800", "atarijaguar", 
         "c64", "genesis", "capcom", "n64", "psp", "psx", "coleco", "dreamcast", "fba", "gb", 
@@ -360,7 +365,6 @@ public class WebEnabledPixel  {
     logMe = LogMe.getInstance();
     
    
-    
 //    Map<String, String> map = System.getenv();  //shows the env variables available to us
 //    map.entrySet().forEach(System.out::println);
     
@@ -1390,6 +1394,8 @@ public boolean isNumeric(String strNum) {
             HttpHandler tickerHttpHandler = new TickerHttpHandler(this);
             
             HttpHandler achievementsHttpHandler = new AchievementsHttpHandler(this);
+            
+            HttpHandler appAPIHandler = new AppAPIHttpHandler(this);
           
             
             // ARE WE GONNA DO ANYTHING WITH THE HttpContext OBJECTS?   
@@ -1434,6 +1440,8 @@ public boolean isNumeric(String strNum) {
             HttpContext clockContext =      server.createContext("/clock", clockHttpHandler);
             
             HttpContext randomContext =      server.createContext("/random", randomModeHttpHandler);
+            
+            HttpContext appAPIContext =     server.createContext("/v2", appAPIHandler);
                                             
         } 
         catch (IOException ex)
@@ -1917,6 +1925,14 @@ public static boolean validIP (String ip) {
   
   public Pixel getPixel() {
     return pixel;
+  }
+  
+  public static String getResolution() {
+      return ledResolution_;
+  }
+  
+  public static String getPixelcadeFirmwareVersion() {
+      return pixelcadeFirmwareVersion;
   }
   
   public List<String> loadAnimationList() {
@@ -2583,6 +2599,25 @@ public static boolean validIP (String ip) {
                 pixel.matrix = ioio_.openRgbLedMatrix(pixel.KIND);
                 pixel.ioiO = ioio_;  //TO DO is this really needed?
                 
+                pixelcadeFirmwareVersion = pixel.getFirmwareVersion();
+                
+                /* Uart uart = ioio_.openUart(37, 38, 115200, Uart.Parity.NONE, Uart.StopBits.ONE);
+                
+                OutputStream out = uart.getOutputStream();
+                
+                String str = "Hello from UART pins 37 and 38!";
+
+                byte[] bytes;
+                bytes = str.getBytes(StandardCharsets.UTF_8);
+                
+                try {
+                    out.write(bytes);
+                } catch (IOException ex) {
+                    Logger.getLogger(WebEnabledPixel.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                */
+                
+              
 //                File arcadeFilePNG2 = new File(pixelHome + "system" + "/" + startupLEDMarqueeName_ + ".png");
 //              try {
 //                  pixel.scrollText("Happy Fourth of July!", 1, 10L, Color.cyan,WebEnabledPixel.pixelConnected,1);

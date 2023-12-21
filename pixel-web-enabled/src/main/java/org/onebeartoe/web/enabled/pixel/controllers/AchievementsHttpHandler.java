@@ -24,7 +24,9 @@ import org.onebeartoe.web.enabled.pixel.WebEnabledPixel;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Comparator;
@@ -37,7 +39,11 @@ import java.util.Random;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
+import static org.onebeartoe.web.enabled.pixel.WebEnabledPixel.getLCDMarqueeHostName;
 import static org.onebeartoe.web.enabled.pixel.WebEnabledPixel.setCurrentPlatformGame;
+import com.sun.net.httpserver.HttpExchange;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 //import static org.apache.velocity.texen.util.FileUtil.file;
 
 //This class should do the following
@@ -154,24 +160,8 @@ private    String text_ = "";
   
   public void writeImageResource(String urlParams) throws IOException, ConnectionLostException {
     Pixel pixel = this.application.getPixel();
-//    String streamOrWrite = null;
-//    String consoleName = null;
-//    String arcadeName = null;
-//    String arcadeNameExtension = null;
-//    String arcadeNameOnlyGIF = null;
-//    String achievementsGIF = null;
-//    String arcadeNameOnlyPNG = null;
-//    String arcadeFilePathPNG = null;
-//    String arcadeFilePathGIF = null;
-//    String consoleFilePathPNG = null;
-//    String consoleFilePathGIF = null;
-//    String defaultConsoleFilePathPNG = null;
-//    String consoleNameMapped = null;
-//    Integer animationVersionCounter = 3;
-   // String pixelHome = System.getProperty("user.home") + File.separator + "pixelcade" + File.separator; //this means "location of pixelcade resources, art, etc"
     LogMe logMe = null;
     File arcadeFileGIF = new File(pixelHome);
-    
     
     String[] consoleArray = { 
         "mame", "atari2600", "daphne", "nes", "neogeo", "atarilynx", "snes", "atari5200", "atari7800", "atarijaguar", 
@@ -307,8 +297,7 @@ private    String text_ = "";
         consoleNameMapped = "mame"; 
       
       currentGameConsole = consoleNameMapped;
-      consoleNameMapped = "achievements";
-      
+     // consoleNameMapped = "achievements"; //not sure why I had this as achievements is part of the core url?
       
       if (!CliPixel.getSilentMode()) {
         System.out.println(streamOrWrite.toUpperCase() + " MODE");
@@ -340,7 +329,68 @@ private    String text_ = "";
         } 
       
       //let's set the text & font properties if we have alt text
-      if (text_ != "" && !WebEnabledPixel.isMister()) {  //scrolling text does not work on MiSTER :-(
+     if (text_ != "" && !WebEnabledPixel.isMister()) {  //scrolling text does not work on MiSTER :-(
+          
+     if (WebEnabledPixel.getLCDMarquee().equals("yes")) {
+            try {
+                if (InetAddress.getByName(getLCDMarqueeHostName()).isReachable(5000)) {
+                    WebEnabledPixel.dxEnvironment = true;
+
+                    URL url = null;
+                    if (WebEnabledPixel.getLCDLEDCompliment() && WebEnabledPixel.pixelConnected) {
+                        String encodedText = URLEncoder.encode(text_, StandardCharsets.UTF_8.toString());
+                        String encodedCurrentGame = URLEncoder.encode(currentgame_, StandardCharsets.UTF_8.toString());
+
+                        url = new URL("http://" + getLCDMarqueeHostName() + ":8080/achievements/stream/"
+                                + consoleNameMapped + "/" + arcadeNameOnlyPNG
+                                + "?t=" + encodedText + "&currentgame=" + encodedCurrentGame + "&led");
+                    } else {
+                        String encodedText = URLEncoder.encode(text_, StandardCharsets.UTF_8.toString());
+                        String encodedCurrentGame = URLEncoder.encode(currentgame_, StandardCharsets.UTF_8.toString());
+
+                        url = new URL("http://" + getLCDMarqueeHostName() + ":8080/achievements/stream/"
+                                + consoleNameMapped + "/" + arcadeNameOnlyPNG
+                                + "?t=" + encodedText + "&currentgame=" + encodedCurrentGame);
+                    }
+
+                    System.out.println("Achievements URL to send to LCD is: " + url.toString());
+
+                    HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                    con.setRequestMethod("GET");
+                    con.getResponseCode();
+                    con.disconnect();
+                }
+            } catch (Exception e) {
+                // Handle exceptions
+            }
+    }   
+
+          
+    //***** if we have an LCD, let's relay the call over to Pixelcade LCD too
+//     if (WebEnabledPixel.getLCDMarquee().equals("yes")) {  //this is where we relay the scrolling text call to LCD
+//        try {
+//                if (InetAddress.getByName(getLCDMarqueeHostName()).isReachable(5000)){
+//                    WebEnabledPixel.dxEnvironment = true;
+//                    
+//                     URL url = null;
+//                     if (WebEnabledPixel.getLCDLEDCompliment() == true && WebEnabledPixel.pixelConnected == true) { //then we need to add &led to the end of the URL params
+//                        //String textURL = requestURI.toString();
+//                        url = new URL("http://" + getLCDMarqueeHostName() + ":8080/achievements/stream/" + consoleNameMapped + "/" + arcadeNameOnlyPNG + "?t=" + text_ + "&currentgame=" + currentgame_ + "&led"); //this flag tells LCD not to scroll as we already have LED scrolling
+//                     }
+//                     else {
+//                        //url = new URL("http://" + getLCDMarqueeHostName() + ":8080" + requestURI);
+//                        url = new URL("http://" + getLCDMarqueeHostName() + ":8080/achievements/stream/" + consoleNameMapped + "/" + arcadeNameOnlyPNG + "?t=" + text_ + "&currentgame=" + currentgame_); //this flag tells LCD not to scroll as we already have LED scrolling
+//                     }
+//                     
+//                    System.out.println("Achievements URL to send to LCD is: " + url.toString());
+//
+//                    HttpURLConnection con = (HttpURLConnection) url.openConnection();
+//                    con.setRequestMethod("GET");
+//                    con.getResponseCode();
+//                    con.disconnect();
+//                }
+//        }catch (Exception e){}
+//    }    
                   
                 int LED_MATRIX_ID = WebEnabledPixel.getMatrixID();
                 speed = Long.valueOf(WebEnabledPixel.getScrollingTextSpeed(LED_MATRIX_ID));
